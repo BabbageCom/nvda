@@ -1,4 +1,5 @@
 import ctypes
+import ctypes.wintypes
 import IAccessibleHandler
 import speech
 import textInfos.offsets
@@ -13,6 +14,7 @@ from ..behaviors import EditableTextWithAutoSelectDetection
 import locale
 import watchdog
 import eventHandler
+from logHandler import log
 
 #Window messages
 SCI_POSITIONFROMPOINT=2022
@@ -65,18 +67,33 @@ class TextRangeStruct(ctypes.Structure):
 
 class ScintillaTextInfo(textInfos.offsets.OffsetsTextInfo):
 
-	def _getOffsetFromPoint(self,x,y):
+	def _getOffsetFromClientPoint(self,x,y):
+		# Used by _getLineOffsets to avoid conversion to/from screen coordinates.
 		return watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POSITIONFROMPOINT,x,y)
 
+	def _getOffsetFromPoint(self,x,y):
+		p=ctypes.wintypes.POINT(x,y)
+		ctypes.windll.user32.ScreenToClient(self.obj.windowHandle,ctypes.byref(p))
+		return watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POSITIONFROMPOINT,p.x,p.y)
+
 	def _getPointFromOffset(self,offset):
-		point=textInfos.Point(
-		watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POINTXFROMPOSITION,None,offset),
-		watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POINTYFROMPOSITION,None,offset)
-		)
-		if point.x and point.y:
-			return point
-		else:
+		x=watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POINTXFROMPOSITION,None,offset)
+		y=watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POINTYFROMPOSITION,None,offset)
+		if x is None or y is None:
 			raise NotImplementedError
+		log.info("DBG: dpi.x=%d, dpi.y=%d" % (x, y))
+		x,y=windowUtils.physicalToLogicalPoint(self.obj.windowHandle,x,y)
+		log.info("DBG: x=%d, y=%d" % (x, y))
+		left,top,width,height=self.obj.location
+		log.info("DBG: dpi.left=%d, dpi.top=%d" % (left, top))
+		left,top=windowUtils.physicalToLogicalPoint(self.obj.windowHandle,left,top)
+		log.info("DBG: left=%d, top=%d" % (left, top))
+		x+=left
+		y+=top
+		log.info("DBG: screen.x=%d, screen.y=%d" % (x, y))
+		x,y=windowUtils.logicalToPhysicalPoint(self.obj.windowHandle,x,y)
+		log.info("DBG: screen.dpi.x=%d, screen.dpi.y=%d" % (x, y))
+		return textInfos.Point(x,y)
 
 	def _getFormatFieldAndOffsets(self,offset,formatConfig,calculateOffsets=True):
 		style=watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_GETSTYLEAT,offset,0)
@@ -190,11 +207,11 @@ class ScintillaTextInfo(textInfos.offsets.OffsetsTextInfo):
 	def _getLineOffsets(self,offset):
 		if watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_GETWRAPMODE,None,None)!=SC_WRAP_NONE:
 			# Lines in Scintilla refer to document lines, not wrapped lines.
-			# There's no way to retrieve wrapped lines, so use screen coordinates.
+			# There's no way to retrieve wrapped lines, so use client coordinates.
 			y=watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POINTYFROMPOSITION,None,offset)
 			top,left,width,height=self.obj.location
-			start = self._getOffsetFromPoint(0,y)
-			end=self._getOffsetFromPoint(width,y)
+			start=self._getOffsetFromClientPoint(0,y)
+			end=self._getOffsetFromClientPoint(width,y)
 			# If this line wraps to the next line,
 			# end is the first offset of the next line.
 			if watchdog.cancellableSendMessage(self.obj.windowHandle,SCI_POINTYFROMPOSITION,None,end)==y:
