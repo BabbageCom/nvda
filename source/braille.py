@@ -1944,6 +1944,8 @@ class BrailleDisplayGesture(inputCore.InputGesture):
 	routingIndex = None
 
 	def _get_identifiers(self):
+		if not self.id:
+			raise RuntimeError("Could not identify key")
 		ids = [u"br({source}):{id}".format(source=self.source, id=self.id)]
 		import brailleInput
 		if isinstance(self, brailleInput.BrailleInputGesture):
