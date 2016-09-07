@@ -326,7 +326,7 @@ def normalizeIAccessible(pacc,childID=0):
 			raise RuntimeError("%s Not an IAccessible"%pacc)
 	# #2558: IAccessible2 doesn't support simple children.
 	# Therefore, it doesn't make sense to use IA2 if the child ID is non-0.
-	if childID==0 and not isinstance(pacc,IAccessible2):
+	if False and childID==0 and not isinstance(pacc,IAccessible2):
 		try:
 			s=pacc.QueryInterface(IServiceProvider)
 			pacc2=s.QueryService(IAccessible._iid_,IAccessible2)
