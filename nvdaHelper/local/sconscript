@@ -28,6 +28,16 @@ controllerRPCHeader,controllerRPCServerSource=env.MSRPCStubs(
 	MSRPCStubs_prefix="nvdaController_",
 )
 
+controllerDVCRPCHeader,controllerDVCRPCServerSource=env.MSRPCStubs(
+	target="./nvdaControllerDVC",
+	source=[
+		"../interfaces/nvdaControllerDVC/nvdaControllerDVC.idl",
+		"../interfaces/nvdaControllerDVC/nvdaControllerDVC.acf",
+	],
+	MSRPCStubs_noClient=True,
+	MSRPCStubs_prefix="nvdaControllerDVC_",
+)
+
 controllerInternalRPCHeader,controllerInternalRPCServerSource=env.MSRPCStubs(
 	target="./nvdaControllerInternal",
 	source=[
@@ -80,6 +90,8 @@ localLib=env.SharedLibrary(
 		'nvdaController.c',
 		winIPCUtilsObj,
 		controllerRPCServerSource,
+		'nvdaControllerDVC.c',
+		controllerDVCRPCServerSource,
 		'nvdaControllerInternal.c',
 		controllerInternalRPCServerSource,
 		"dllImportTableHooks.cpp",

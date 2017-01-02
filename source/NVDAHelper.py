@@ -60,6 +60,13 @@ def nvdaController_brailleMessage(text):
 	queueHandler.queueFunction(queueHandler.eventQueue,braille.handler.message,text)
 	return 0
 
+@WINFUNCTYPE(c_long,c_wchar_p)
+def nvdaControllerDVC_onDataReceived(data):
+	import queueHandler
+	import ui
+	queueHandler.queueFunction(queueHandler.eventQueue,ui.message,data)
+	return 0
+
 def _lookupKeyboardLayoutNameWithHexString(layoutString):
 	buf=create_unicode_buffer(1024)
 	bufSize=c_int(2048)
@@ -422,6 +429,7 @@ def initialize():
 		("nvdaController_speakText",nvdaController_speakText),
 		("nvdaController_cancelSpeech",nvdaController_cancelSpeech),
 		("nvdaController_brailleMessage",nvdaController_brailleMessage),
+		("nvdaControllerDVC_onDataReceived",nvdaController_onDataReceived),
 		("nvdaControllerInternal_requestRegistration",nvdaControllerInternal_requestRegistration),
 		("nvdaControllerInternal_inputLangChangeNotify",nvdaControllerInternal_inputLangChangeNotify),
 		("nvdaControllerInternal_typedCharacterNotify",nvdaControllerInternal_typedCharacterNotify),
