@@ -30,6 +30,16 @@ controllerRPCHeader,controllerRPCClientSource=env.MSRPCStubs(
 	MSRPCStubs_prefix="nvdaController_",
 )
 
+controllerDVCRPCHeader,controllerDVCRPCClientSource=env.MSRPCStubs(
+	target="./nvdaControllerDVC",
+	source=[
+		"../interfaces/nvdaControllerDVC/nvdaControllerDVC.idl",
+		"../interfaces/nvdaControllerDVC/nvdaControllerDVC.acf",
+	],
+	MSRPCStubs_noServer=True,
+	MSRPCStubs_prefix="nvdaControllerDVC_",
+)
+
 controllerInternalRPCHeader,controllerInternalRPCClientSource=env.MSRPCStubs(
 	target="./nvdaControllerInternal",
 	source=[
@@ -93,6 +103,7 @@ remoteLib=env.SharedLibrary(
 		vbufRPCServerSource,
 		winIPCUtilsObj,
 		controllerRPCClientSource,
+		controllerDVCRPCClientSource,
 		controllerInternalRPCClientSource,
 		"sysListView32.cpp",
 		"winword.cpp",

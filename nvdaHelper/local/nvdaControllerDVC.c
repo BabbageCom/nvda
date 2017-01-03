@@ -12,7 +12,7 @@ This license can be found at:
 http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
-#include "nvdaController.h"
+#include "nvdaControllerDVC.h"
 
 error_status_t(__stdcall *_nvdaControllerDVC_onDataReceived)(const wchar_t*);
 error_status_t __stdcall nvdaControllerDVC_onDataReceived(const wchar_t* data) {

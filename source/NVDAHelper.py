@@ -429,7 +429,7 @@ def initialize():
 		("nvdaController_speakText",nvdaController_speakText),
 		("nvdaController_cancelSpeech",nvdaController_cancelSpeech),
 		("nvdaController_brailleMessage",nvdaController_brailleMessage),
-		("nvdaControllerDVC_onDataReceived",nvdaController_onDataReceived),
+		("nvdaControllerDVC_onDataReceived",nvdaControllerDVC_onDataReceived),
 		("nvdaControllerInternal_requestRegistration",nvdaControllerInternal_requestRegistration),
 		("nvdaControllerInternal_inputLangChangeNotify",nvdaControllerInternal_inputLangChangeNotify),
 		("nvdaControllerInternal_typedCharacterNotify",nvdaControllerInternal_typedCharacterNotify),
