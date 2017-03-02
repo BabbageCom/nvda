@@ -834,6 +834,7 @@ class GlobalCommands(ScriptableObject):
 			# 1. There is no focusable object e.g. cannot use tab and shift tab to move to controls.
 			# 2. Trying to move focus to navigator object but there is no focus.
 			ui.message(_("No focus"))
+			return
 		if scriptHandler.getLastScriptRepeatCount()==0:
 			# Translators: Reported when attempting to move focus to navigator object.
 			ui.message(_("Move focus"))
@@ -1371,6 +1372,60 @@ class GlobalCommands(ScriptableObject):
 	# Translators: Input help mode message for toggle mouse tracking command.
 	script_toggleMouseTracking.__doc__=_("Toggles the reporting of information as the mouse moves")
 	script_toggleMouseTracking.category=SCRCAT_MOUSE
+
+	def script_mouseObject_current(self,gesture):
+		curObject=api.getMouseObject()
+		if not isinstance(curObject,NVDAObject):
+			# Translators: Reported when the user tries to perform a command related to the mouse object
+			# but there is no current mouse object.
+			speech.speakMessage(_("No object under the mouse"))
+			return
+		if scriptHandler.getLastScriptRepeatCount()>=1:
+			if curObject.TextInfo!=NVDAObjectTextInfo:
+				textList=[]
+				if curObject.name and isinstance(curObject.name, basestring) and not curObject.name.isspace():
+					textList.append(curObject.name)
+				try:
+					info=curObject.makeTextInfo(textInfos.POSITION_SELECTION)
+					if not info.isCollapsed:
+						textList.append(info.text)
+					else:
+						info.expand(textInfos.UNIT_LINE)
+						if not info.isCollapsed:
+							textList.append(info.text)
+				except (RuntimeError, NotImplementedError):
+					# No caret or selection on this object.
+					pass
+			else:
+				textList=[prop for prop in (curObject.name, curObject.value) if prop and isinstance(prop, basestring) and not prop.isspace()]
+			text=" ".join(textList)
+			if len(text)>0 and not text.isspace():
+				if scriptHandler.getLastScriptRepeatCount()==1:
+					speech.speakSpelling(text)
+				else:
+					if api.copyToClip(text):
+						# Translators: Indicates something has been copied to clipboard (example output: title text copied to clipboard).
+						speech.speakMessage(_("%s copied to clipboard")%text)
+		else:
+			speech.speakObject(curObject,reason=controlTypes.REASON_QUERY)
+	# Translators: Input help mode message for report current mouse object command.
+	script_mouseObject_current.__doc__=_("Reports the current object under the mouse ponter. Pressing twice spells this information, and pressing three times Copies name and value of this  object to the clipboard")
+	script_mouseObject_current.category=SCRCAT_MOUSE
+
+	def script_mouseObject_moveFocus(self,gesture):
+		obj=api.getMouseObject()
+		if not isinstance(obj,NVDAObject):
+			# Translators: Reported when:
+			# 1. There is no focusable object e.g. cannot use tab and shift tab to move to controls.
+			# 2. Trying to move focus to mouse object but there is no focus.
+			ui.message(_("No focus"))
+			return
+		# Translators: Reported when attempting to move focus to mouse object.
+		ui.message(_("Move focus"))
+		obj.setFocus()
+	# Translators: Input help mode message for move focus to current mouse object command.
+	script_mouseObject_moveFocus.__doc__=_("Sets the keyboard focus to the current object under the mouse pointer")
+	script_mouseObject_moveFocus.category=SCRCAT_MOUSE
 
 	def script_title(self,gesture):
 		obj=api.getForegroundObject()
@@ -2122,6 +2177,10 @@ class GlobalCommands(ScriptableObject):
 		"kb(laptop):NVDA+shift+m": "moveMouseToNavigatorObject",
 		"kb:NVDA+numpadMultiply": "moveNavigatorObjectToMouse",
 		"kb(laptop):NVDA+shift+n": "moveNavigatorObjectToMouse",
+		"kb:NVDA+control+numpadDivide": "mouseObject_moveFocus",
+		"kb(laptop):NVDA+control+backspace": "mouseObject_moveFocus",
+		"kb:NVDA+control+numpadMultiply": "mouseObject_current",
+		"kb(laptop):NVDA+control+n": "mouseObject_current",
 
 		# Tree interceptors
 		"kb:NVDA+space": "toggleVirtualBufferPassThrough",
