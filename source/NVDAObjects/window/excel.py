@@ -647,6 +647,8 @@ class ExcelBase(Window):
 			obj=excelChart.ExcelChart(windowHandle=self.windowHandle,excelWindowObject=self.excelWindowObject,excelChartObject=selection)
 		return obj
 
+	def findIndexInParent(self):
+		raise NotImplementedError
 
 class Excel7Window(ExcelBase):
 	"""An overlay class for Window for the EXCEL7 window class, which simply bounces focus to the active excel cell."""

@@ -772,6 +772,20 @@ Tries to force this object to take the focus.
 		"""
 		raise NotImplementedError
 
+	def findIndexInParent(self):
+		"""Searches for the index of this object in its parent object by comparing it with all the parent's children.
+		Note that this can be a resource and time consuming task and that this is not always accurate (e.g. #7178: for IAccessible objects, object comparison is unreliable).
+		Subclasses should override this in cases of major breakage, e.g. as in L{NVDAObjects.window.excel.ExcelBase}.
+		@return: The 0 based index, C{None} if there is no parent or when no index could be found.
+		@rtype: int
+		"""
+		if not self.parent:
+			return None
+		try:
+			return self.parent.children.index(self)
+		except ValueError:
+			return None
+
 	def _get_flowsTo(self):
 		"""The object to which content flows from this object.
 		@return: The object to which this object flows, C{None} if none.
