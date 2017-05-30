@@ -912,10 +912,9 @@ def speakTextInfo(info,useCache=True,formatConfig=None,unit=None,reason=controlT
 
 def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues):
 	global oldTreeLevel, oldTableID, oldRowNumber, oldColumnNumber
+	textDict={}
 	textList=[]
-	name=propertyValues.get('name')
-	if name:
-		textList.append(name)
+	textDict['name']=propertyValues.get('name')
 	if 'role' in propertyValues:
 		role=propertyValues['role']
 		speakRole=True
@@ -931,14 +930,15 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 	columnNumber=propertyValues.get('columnNumber')
 	includeTableCellCoords=propertyValues.get('includeTableCellCoords',True)
 	if speakRole and (reason not in (controlTypes.REASON_SAYALL,controlTypes.REASON_CARET,controlTypes.REASON_FOCUS) or not (name or value or cellCoordsText or rowNumber or columnNumber) or role not in controlTypes.silentRolesOnFocus) and (role!=controlTypes.ROLE_MATH or reason not in (controlTypes.REASON_CARET,controlTypes.REASON_SAYALL)):
-		textList.append(controlTypes.roleLabels[role])
+		textDict['role']=controlTypes.roleLabels[role])
 	if value:
-		textList.append(value)
+		textDict['value']=value
 	states=propertyValues.get('states')
 	realStates=propertyValues.get('_states',states)
+	stateLabels=[]
 	if states is not None:
 		positiveStates=controlTypes.processPositiveStates(role,realStates,reason,states)
-		textList.extend([controlTypes.stateLabels[x] for x in positiveStates])
+		stateLabels.extend([controlTypes.stateLabels[x] for x in positiveStates])
 	if 'negativeStates' in propertyValues:
 		negativeStates=propertyValues['negativeStates']
 	else:
@@ -949,19 +949,21 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 			# "not drop target" doesn't make any sense, so use a custom message.
 			# Translators: Reported when drag and drop is finished.
 			# This is only reported for objects which support accessible drag and drop.
-			textList.append(_("done dragging"))
+			stateLabels.append(_("done dragging"))
 			negativeStates.discard(controlTypes.STATE_DROPTARGET)
 		# Translators: Indicates that a particular state on an object is negated.
 		# Separate strings have now been defined for commonly negated states (e.g. not selected and not checked),
 		# but this still might be used in some other cases.
 		# %s will be replaced with the negated state.
-		textList.extend([controlTypes.negativeStateLabels.get(x, _("not %s")%controlTypes.stateLabels[x]) for x in negativeStates])
+		stateLabels.extend([controlTypes.negativeStateLabels.get(x, _("not %s")%controlTypes.stateLabels[x]) for x in negativeStates])
+	if stateLabels:
+		textDict['states']=CHUNK_SEPARATOR.join(st for st in stateLabels if st)
 	if 'description' in propertyValues:
-		textList.append(propertyValues['description'])
+		textDict['description']=propertyValues['description']
 	if 'keyboardShortcut' in propertyValues:
-		textList.append(propertyValues['keyboardShortcut'])
+		textDict['keyboardShortcut']=propertyValues['keyboardShortcut']
 	if includeTableCellCoords and cellCoordsText:
-		textList.append(cellCoordsText)
+		textDict['cellCoordsText']=cellCoordsText
 	if cellCoordsText or rowNumber or columnNumber:
 		tableID = propertyValues.get("_tableID")
 		# Always treat the table as different if there is no tableID.
@@ -972,57 +974,63 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 		if rowNumber and (not sameTable or rowNumber != oldRowNumber):
 			rowHeaderText = propertyValues.get("rowHeaderText")
 			if rowHeaderText:
-				textList.append(rowHeaderText)
+				textDict['rowHeaderText']=rowHeaderText
 			if includeTableCellCoords and not cellCoordsText: 
 				# Translators: Speaks current row number (example output: row 3).
-				textList.append(_("row %s")%rowNumber)
+				textDict['rowNumber']=_("row %s")%rowNumber
 			oldRowNumber = rowNumber
 		if columnNumber and (not sameTable or columnNumber != oldColumnNumber):
 			columnHeaderText = propertyValues.get("columnHeaderText")
 			if columnHeaderText:
-				textList.append(columnHeaderText)
+				textDict['columnHeaderText']=columnHeaderText
 			if includeTableCellCoords and not cellCoordsText:
 				# Translators: Speaks current column number (example output: column 3).
-				textList.append(_("column %s")%columnNumber)
+				textDict['columnNumber']=_("column %s")%columnNumber
 			oldColumnNumber = columnNumber
 	rowCount=propertyValues.get('rowCount',0)
 	columnCount=propertyValues.get('columnCount',0)
-	if rowCount and columnCount:
-		# Translators: Speaks number of columns and rows in a table (example output: with 3 rows and 2 columns).
-		textList.append(_("with {rowCount} rows and {columnCount} columns").format(rowCount=rowCount,columnCount=columnCount))
-	elif columnCount and not rowCount:
-		# Translators: Speaks number of columns (example output: with 4 columns).
-		textList.append(_("with %s columns")%columnCount)
-	elif rowCount and not columnCount:
-		# Translators: Speaks number of rows (example output: with 2 rows).
-		textList.append(_("with %s rows")%rowCount)
+	if rowCount:
+		# Translators: Speaks number of rows (example output: 2 rows).
+		textDict['rowCount']=_("%d rows")%rowCount
+	if columnCount:
+		# Translators: Speaks number of columns (example output: 4 columns).
+		textDict['ColumnCount']=_("%d columns")%columnCount
 	if rowCount or columnCount:
 		# The caller is entering a table, so ensure that it is treated as a new table, even if the previous table was the same.
 		oldTableID = None
 	ariaCurrent = propertyValues.get('current', False)
 	if ariaCurrent:
 		try:
-			textList.append(controlTypes.isCurrentLabels[ariaCurrent])
+			textDict['current']=controlTypes.isCurrentLabels[ariaCurrent]
 		except KeyError:
 			log.debugWarning("Aria-current value not handled: %s"%ariaCurrent)
-			textList.append(controlTypes.isCurrentLabels[True])
+			textDict['current']=controlTypes.isCurrentLabels[True]
+	positionInfoList=[]
 	indexInGroup=propertyValues.get('positionInfo_indexInGroup',0)
 	similarItemsInGroup=propertyValues.get('positionInfo_similarItemsInGroup',0)
 	if 0<indexInGroup<=similarItemsInGroup:
 		# Translators: Spoken to indicate the position of an item in a group of items (such as a list).
 		# {number} is replaced with the number of the item in the group.
 		# {total} is replaced with the total number of items in the group.
-		textList.append(_("{number} of {total}").format(number=indexInGroup, total=similarItemsInGroup))
+		positionInfoList.append(_("{number} of {total}").format(number=indexInGroup, total=similarItemsInGroup))
 	if 'positionInfo_level' in propertyValues:
 		level=propertyValues.get('positionInfo_level',None)
 		role=propertyValues.get('role',None)
 		if level is not None:
 			if role in (controlTypes.ROLE_TREEVIEWITEM,controlTypes.ROLE_LISTITEM) and level!=oldTreeLevel:
-				textList.insert(0,_("level %s")%level)
+				# Always speak level first when coming from another level, regardless of configuration
+				# Translators: Speaks the item level in treeviews (example output: level 2).
+				textList.append(_("level %s")%level)
 				oldTreeLevel=level
 			else:
 				# Translators: Speaks the item level in treeviews (example output: level 2).
-				textList.append(_('level %s')%propertyValues['positionInfo_level'])
+				positionInfoList.append(_('level %s')%propertyValues['positionInfo_level'])
+	if positionInfoList:
+		textDict['positionInfo']=CHUNK_SEPARATOR.join(info for info in positionInfoList if info)
+	speechPropertiesOrder=config.conf['presentation']['speechPropertiesOrder']
+	for property in speechPropertiesOrder:
+		if property in textDict:
+			textList.append(textDict.get('property'))
 	return CHUNK_SEPARATOR.join([x for x in textList if x])
 
 def getControlFieldSpeech(attrs,ancestorAttrs,fieldType,formatConfig=None,extraDetail=False,reason=None):

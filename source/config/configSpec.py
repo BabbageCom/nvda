@@ -15,7 +15,7 @@ latestSchemaVersion = 1
 
 #: The maximum number of object properties in speech and braille output. 
 #: Increment this when adding new properties to braille.getBrailleTextForProperties and getSpeechTextForProperties
-objectPropertiesCount = 13
+objectPropertiesCount = 14
 
 #: The configuration specification string
 #: @type: String
@@ -80,7 +80,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 		reportHelpBalloons = boolean(default=true)
 		reportObjectDescriptions = boolean(default=True)
 		reportDynamicContentChanges = boolean(default=True)
-		speechPropertiesOrder = string_list(max={objectPropertiesCount},default=name, role, value, description, keyboardShortcut, cellCoordsText, rowHeaderText, rowNumber, columnHeaderText, columnNumber, rowColumnCount, current, positionInfo)
+		speechPropertiesOrder = string_list(max={objectPropertiesCount},default=name, role, value, description, keyboardShortcut, cellCoordsText, rowHeaderText, rowNumber, columnHeaderText, columnNumber, rowCount, columnCount, current, positionInfo)
 	[[progressBarUpdates]]
 		reportBackgroundProgressBars = boolean(default=false)
 		#output modes are beep, speak, both, or off
