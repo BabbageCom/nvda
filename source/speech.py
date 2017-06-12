@@ -914,7 +914,9 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 	global oldTreeLevel, oldTableID, oldRowNumber, oldColumnNumber
 	textDict={}
 	textList=[]
-	textDict['name']=propertyValues.get('name')
+	name=propertyValues.get('name')
+	if name:
+		textDict['name']=name
 	if 'role' in propertyValues:
 		role=propertyValues['role']
 		speakRole=True
@@ -930,7 +932,7 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 	columnNumber=propertyValues.get('columnNumber')
 	includeTableCellCoords=propertyValues.get('includeTableCellCoords',True)
 	if speakRole and (reason not in (controlTypes.REASON_SAYALL,controlTypes.REASON_CARET,controlTypes.REASON_FOCUS) or not (name or value or cellCoordsText or rowNumber or columnNumber) or role not in controlTypes.silentRolesOnFocus) and (role!=controlTypes.ROLE_MATH or reason not in (controlTypes.REASON_CARET,controlTypes.REASON_SAYALL)):
-		textDict['role']=controlTypes.roleLabels[role])
+		textDict['role']=controlTypes.roleLabels[role]
 	if value:
 		textDict['value']=value
 	states=propertyValues.get('states')
