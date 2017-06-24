@@ -299,6 +299,9 @@ class UIABrowseModeDocument(browseMode.BrowseModeDocumentTreeInterceptor):
 		elif nodeType=="nonTextContainer":
 			condition=createUIAMultiPropertyCondition({UIAHandler.UIA_ControlTypePropertyId:UIAHandler.UIA_ListControlTypeId,UIAHandler.UIA_IsKeyboardFocusablePropertyId:True},{UIAHandler.UIA_ControlTypePropertyId:UIAHandler.UIA_ComboBoxControlTypeId})
 			return UIAControlQuicknavIterator(nodeType,self,pos,condition,direction)
+		elif nodeType=="error":
+			condition=UIAHandler.handler.clientObject.createPropertyCondition(UIAHandler.UIA_IsDataValidForFormPropertyId,False)
+			return UIAControlQuicknavIterator(nodeType,self,pos,condition,direction)
 		raise NotImplementedError
 
 	def _activateNVDAObject(self,obj):
