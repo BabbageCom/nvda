@@ -243,6 +243,8 @@ class Gecko_ia2(VirtualBuffer):
 				]
 		elif nodeType=="embeddedObject":
 			attrs={"IAccessible2::attribute_tag":self._searchableTagValues(["embed","object","applet"])}
+		elif nodeType=="error":
+			attrs={"IAccessible2::state_%s"%IAccessibleHandler.IA2_STATE_INVALID_ENTRY:[1]}
 		else:
 			return None
 		return attrs
