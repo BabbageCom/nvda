@@ -318,6 +318,8 @@ class MSHTML(VirtualBuffer):
 			attrs = {"IHTMLDOMNode::nodeName": ["OBJECT","EMBED","APPLET"]}
 		elif nodeType == "separator":
 			attrs = {"IHTMLDOMNode::nodeName": ["HR"]}
+		elif nodeType == "error":
+			attrs = {"HTMLAttrib::aria-invalid":["true"]}
 		else:
 			return None
 		return attrs
