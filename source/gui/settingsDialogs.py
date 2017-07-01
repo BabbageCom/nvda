@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 #settingsDialogs.py
 #A part of NonVisual Desktop Access (NVDA)
-#Copyright (C) 2006-2017 NV Access Limited, Peter Vágner, Aleksey Sadovoy, Rui Batista, Joseph Lee, Heiko Folkerts, Zahari Yurukov, Leonard de Ruijter, Derek Riemer
+#Copyright (C) 2006-2017 NV Access Limited, Peter Vágner, Aleksey Sadovoy, Rui Batista, Joseph Lee, Heiko Folkerts, Zahari Yurukov, Leonard de Ruijter, Derek Riemer, Babbage B.V.
 #This file is covered by the GNU General Public License.
 #See the file COPYING for more details.
 
@@ -1618,7 +1618,7 @@ class BrailleSettingsDialog(SettingsDialog):
 		self.tetherValues=[("focus",_("focus")),("review",_("review"))]
 		tetherChoices = [x[1] for x in self.tetherValues]
 		self.tetherList = sHelper.addLabeledControl(tetherListText, wx.Choice, choices=tetherChoices)
-		tetherConfig=braille.handler.tether
+		tetherConfig=config.conf["braille"]["tetherTo"]
 		selection = (x for x,y in enumerate(self.tetherValues) if y[0]==tetherConfig).next()  
 		try:
 			self.tetherList.SetSelection(selection)
@@ -1662,7 +1662,7 @@ class BrailleSettingsDialog(SettingsDialog):
 		config.conf["braille"]["cursorShape"] = self.cursorShapes[self.shapeList.GetSelection()]
 		config.conf["braille"]["noMessageTimeout"] = self.noMessageTimeoutCheckBox.GetValue()
 		config.conf["braille"]["messageTimeout"] = self.messageTimeoutEdit.GetValue()
-		braille.handler.tether = self.tetherValues[self.tetherList.GetSelection()][0]
+		braille.handler.setTether(self.tetherValues[self.tetherList.GetSelection()][0], auto=False)
 		config.conf["braille"]["autoTether"] = self.autoTetherCheckBox.Value
 		config.conf["braille"]["readByParagraph"] = self.readByParagraphCheckBox.Value
 		config.conf["braille"]["wordWrap"] = self.wordWrapCheckBox.Value
