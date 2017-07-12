@@ -1565,12 +1565,14 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		elif self.buffer is self.messageBuffer and keyboardHandler.keyCounter>self._keyCountForLastMessage:
 			self._dismissMessage()
 
-	def handleReviewMove(self):
+	def handleReviewMove(self, shouldAutoTether=True):
 		if not self.enabled:
 			return
-		if self._tether != self.TETHER_REVIEW:
+		if not (shouldAutoTether and self.shouldAutoTether) and self._tether != self.TETHER_REVIEW:
 			return
 		reviewPos = api.getReviewPosition()
+		if reviewPos.obj == api.getFocusObject():
+			self.setTether(self.TETHER_REVIEW, auto=True)
 		region = self.mainBuffer.regions[-1] if self.mainBuffer.regions else None
 		if region and region.obj == reviewPos.obj:
 			self._doCursorMove(region)
