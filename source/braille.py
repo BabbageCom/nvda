@@ -1279,12 +1279,10 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		return self.getTether()
 
 	def setTether(self, tether, auto=False):
-		if auto and not self.shouldAutoTether:
+		if tether == self._tether or (auto and not self.shouldAutoTether):
 			return
-		if tether == self._tether:
-			if not auto and self.isAutoTethered:
-				config.conf["braille"]["tetherTo"] = tether
-			return
+		if not auto:
+			config.conf["braille"]["tetherTo"] = tether
 		self._tether = tether
 		self.mainBuffer.clear()
 		if tether == self.TETHER_REVIEW:
@@ -1465,9 +1463,10 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 	def handleGainFocus(self, obj, shouldAutoTether=True):
 		if not self.enabled:
 			return
-		if not (shouldAutoTether and self.shouldAutoTether) and self._tether != self.TETHER_FOCUS:
+		if shouldAutoTether:
+			self.setTether(self.TETHER_FOCUS, auto=True)
+		elif self._tether != self.TETHER_FOCUS:
 			return
-		self.setTether(self.TETHER_FOCUS, auto=True)
 		self._doNewObject(itertools.chain(getFocusContextRegions(obj, oldFocusRegions=self.mainBuffer.regions), getFocusRegions(obj)))
 
 	def _doNewObject(self, regions):
@@ -1489,10 +1488,9 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 	def handleCaretMove(self, obj, shouldAutoTether=True):
 		if not self.enabled:
 			return
-		if not (shouldAutoTether and self.shouldAutoTether) and self._tether != self.TETHER_FOCUS:
-			return
-		self.setTether(self.TETHER_FOCUS, auto=True)
-		if not self.mainBuffer.regions:
+		if shouldAutoTether:
+			self.setTether(self.TETHER_FOCUS, auto=True)
+		elif self._tether != self.TETHER_FOCUS or not self.mainBuffer.regions:
 			return
 		region = self.mainBuffer.regions[-1]
 		if region.obj is not obj:
