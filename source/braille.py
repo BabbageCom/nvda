@@ -1279,7 +1279,7 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		return self.getTether()
 
 	def setTether(self, tether, auto=False):
-		if auto and (not self.shouldAutoTether or self.isAutoTethered):
+		if auto and not self.shouldAutoTether:
 			return
 		if not auto:
 			config.conf["braille"]["tetherTo"] = tether
@@ -1463,9 +1463,10 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 	def handleGainFocus(self, obj, shouldAutoTether=True):
 		if not self.enabled:
 			return
-		if not (shouldAutoTether and self.shouldAutoTether) and self._tether != self.TETHER_FOCUS:
+		if shouldAutoTether:
+			self.setTether(self.TETHER_FOCUS, auto=True)
+		elif self._tether != self.TETHER_FOCUS:
 			return
-		self.setTether(self.TETHER_FOCUS, auto=True)
 		self._doNewObject(itertools.chain(getFocusContextRegions(obj, oldFocusRegions=self.mainBuffer.regions), getFocusRegions(obj)))
 
 	def _doNewObject(self, regions):
@@ -1487,10 +1488,9 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 	def handleCaretMove(self, obj, shouldAutoTether=True):
 		if not self.enabled:
 			return
-		if not (shouldAutoTether and self.shouldAutoTether) and self._tether != self.TETHER_FOCUS:
-			return
-		self.setTether(self.TETHER_FOCUS, auto=True)
-		if not self.mainBuffer.regions:
+		if shouldAutoTether:
+			self.setTether(self.TETHER_FOCUS, auto=True)
+		elif self._tether != self.TETHER_FOCUS or not self.mainBuffer.regions:
 			return
 		region = self.mainBuffer.regions[-1]
 		if region.obj is not obj:
@@ -1566,12 +1566,13 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 	def handleReviewMove(self, shouldAutoTether=True):
 		if not self.enabled:
 			return
-		if not (shouldAutoTether and self.shouldAutoTether) and self._tether != self.TETHER_REVIEW:
+		if not shouldAutoTether and self._tether != self.TETHER_REVIEW:
 			return
 		reviewPos = api.getReviewPosition()
 		if reviewPos.obj == api.getFocusObject() and config.conf["reviewCursor"]["followFocus"]:
 			return
-		self.setTether(self.TETHER_REVIEW, auto=True)
+		if shouldAutoTether:
+			self.setTether(self.TETHER_REVIEW, auto=True)
 		region = self.mainBuffer.regions[-1] if self.mainBuffer.regions else None
 		if region and region.obj == reviewPos.obj:
 			self._doCursorMove(region)
