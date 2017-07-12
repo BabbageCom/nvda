@@ -25,6 +25,9 @@ import textInfos
 import brailleDisplayDrivers
 import inputCore
 import brailleTables
+import eventHandler
+# ***debug***
+from tones import beep
 
 roleLabels = {
 	# Translators: Displayed in braille for an object which is an
@@ -1279,15 +1282,19 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		return self.getTether()
 
 	def setTether(self, tether, auto=False):
-		if auto and not self.shouldAutoTether:
+		if tether == self._tether or (auto and not self.shouldAutoTether):
+			return
+		if auto and tether == self.TETHER_REVIEW and eventHandler.isPendingEvents(eventName="focusEntered"):
 			return
 		if not auto:
 			config.conf["braille"]["tetherTo"] = tether
 		self._tether = tether
 		self.mainBuffer.clear()
 		if tether == self.TETHER_REVIEW:
+			beep(440,30)			
 			self.handleReviewMove(shouldAutoTether=False)
 		else:
+			beep(220,30)			
 			self.handleGainFocus(api.getFocusObject(),shouldAutoTether=False)
 
 	def _set_tether(self, tether):
@@ -1569,8 +1576,8 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		if not shouldAutoTether and self._tether != self.TETHER_REVIEW:
 			return
 		reviewPos = api.getReviewPosition()
-		if reviewPos.obj == api.getFocusObject() and config.conf["reviewCursor"]["followFocus"]:
-			return
+		#if reviewPos.obj == api.getFocusObject() and config.conf["reviewCursor"]["followFocus"]:
+			#return
 		if shouldAutoTether:
 			self.setTether(self.TETHER_REVIEW, auto=True)
 		region = self.mainBuffer.regions[-1] if self.mainBuffer.regions else None
@@ -1660,9 +1667,9 @@ def initialize():
 		# Braille is disabled or focus/review hasn't yet been initialised.
 		return
 	if handler.tether == handler.TETHER_FOCUS:
-		handler.handleGainFocus(api.getFocusObject())
+		handler.handleGainFocus(api.getFocusObject(), shouldAutoTether=False)
 	else:
-		handler.handleReviewMove()
+		handler.handleReviewMove(shouldAutoTether=False)
 
 def pumpAll():
 	"""Runs tasks at the end of each core cycle. For now just caret updates."""
