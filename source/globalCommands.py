@@ -715,7 +715,6 @@ class GlobalCommands(ScriptableObject):
 		ui.message(_("Move navigator object to mouse"))
 		obj=api.getMouseObject()
 		api.setNavigatorObject(obj)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakObject(obj)
 	# Translators: Input help mode message for move navigator object to mouse command.
 	script_moveNavigatorObjectToMouse.__doc__=_("Sets the navigator object to the current object under the mouse pointer and speaks it")
@@ -869,7 +868,6 @@ class GlobalCommands(ScriptableObject):
 		curObject=curObject.simpleParent if simpleReviewMode else curObject.parent
 		if curObject is not None:
 			api.setNavigatorObject(curObject)
-			braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 			speech.speakObject(curObject,reason=controlTypes.REASON_FOCUS)
 		else:
 			# Translators: Reported when there is no containing (parent) object such as when focused on desktop.
@@ -889,7 +887,6 @@ class GlobalCommands(ScriptableObject):
 		curObject=curObject.simpleNext if simpleReviewMode else curObject.next
 		if curObject is not None:
 			api.setNavigatorObject(curObject)
-			braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 			speech.speakObject(curObject,reason=controlTypes.REASON_FOCUS)
 		else:
 			# Translators: Reported when there is no next object (current object is the last object).
@@ -909,7 +906,6 @@ class GlobalCommands(ScriptableObject):
 		curObject=curObject.simplePrevious if simpleReviewMode else curObject.previous
 		if curObject is not None:
 			api.setNavigatorObject(curObject)
-			braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 			speech.speakObject(curObject,reason=controlTypes.REASON_FOCUS)
 		else:
 			# Translators: Reported when there is no previous object (current object is the first object).
@@ -929,7 +925,6 @@ class GlobalCommands(ScriptableObject):
 		curObject=curObject.simpleFirstChild if simpleReviewMode else curObject.firstChild
 		if curObject is not None:
 			api.setNavigatorObject(curObject)
-			braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 			speech.speakObject(curObject,reason=controlTypes.REASON_FOCUS)
 		else:
 			# Translators: Reported when there is no contained (first child) object such as inside a document.
@@ -976,7 +971,6 @@ class GlobalCommands(ScriptableObject):
 		info=api.getReviewPosition().obj.makeTextInfo(textInfos.POSITION_FIRST)
 		api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_LINE)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakMessage(_("Top"))
 		speech.speakTextInfo(info,unit=textInfos.UNIT_LINE,reason=controlTypes.REASON_CARET)
 	# Translators: Input help mode message for move review cursor to top line command.
@@ -994,7 +988,6 @@ class GlobalCommands(ScriptableObject):
 		else:
 			api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_LINE)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakTextInfo(info,unit=textInfos.UNIT_LINE,reason=controlTypes.REASON_CARET)
 	# Translators: Input help mode message for move review cursor to previous line command.
 	script_review_previousLine.__doc__=_("Moves the review cursor to the previous line of the current navigator object and speaks it")
@@ -1004,6 +997,7 @@ class GlobalCommands(ScriptableObject):
 	def script_review_currentLine(self,gesture):
 		info=api.getReviewPosition().copy()
 		info.expand(textInfos.UNIT_LINE)
+		# Explicitly tether here
 		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		scriptCount=scriptHandler.getLastScriptRepeatCount()
 		if scriptCount==0:
@@ -1025,7 +1019,6 @@ class GlobalCommands(ScriptableObject):
 		else:
 			api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_LINE)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakTextInfo(info,unit=textInfos.UNIT_LINE,reason=controlTypes.REASON_CARET)
 	# Translators: Input help mode message for move review cursor to next line command.
 	script_review_nextLine.__doc__=_("Moves the review cursor to the next line of the current navigator object and speaks it")
@@ -1036,7 +1029,6 @@ class GlobalCommands(ScriptableObject):
 		info=api.getReviewPosition().obj.makeTextInfo(textInfos.POSITION_LAST)
 		api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_LINE)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakMessage(_("Bottom"))
 		speech.speakTextInfo(info,unit=textInfos.UNIT_LINE,reason=controlTypes.REASON_CARET)
 	# Translators: Input help mode message for move review cursor to bottom line command.
@@ -1054,7 +1046,6 @@ class GlobalCommands(ScriptableObject):
 		else:
 			api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_WORD)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakTextInfo(info,reason=controlTypes.REASON_CARET,unit=textInfos.UNIT_WORD)
 	# Translators: Input help mode message for move review cursor to previous word command.
 	script_review_previousWord.__doc__=_("Moves the review cursor to the previous word of the current navigator object and speaks it")
@@ -1063,6 +1054,7 @@ class GlobalCommands(ScriptableObject):
 	def script_review_currentWord(self,gesture):
 		info=api.getReviewPosition().copy()
 		info.expand(textInfos.UNIT_WORD)
+		# Explicitly tether here
 		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		scriptCount=scriptHandler.getLastScriptRepeatCount()
 		if scriptCount==0:
@@ -1084,7 +1076,6 @@ class GlobalCommands(ScriptableObject):
 		else:
 			api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_WORD)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakTextInfo(info,reason=controlTypes.REASON_CARET,unit=textInfos.UNIT_WORD)
 	# Translators: Input help mode message for move review cursor to next word command.
 	script_review_nextWord.__doc__=_("Moves the review cursor to the next word of the current navigator object and speaks it")
@@ -1096,7 +1087,6 @@ class GlobalCommands(ScriptableObject):
 		info.collapse()
 		api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_CHARACTER)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakMessage(_("Left"))
 		speech.speakTextInfo(info,unit=textInfos.UNIT_CHARACTER,reason=controlTypes.REASON_CARET)
 	# Translators: Input help mode message for move review cursor to start of current line command.
@@ -1109,7 +1099,6 @@ class GlobalCommands(ScriptableObject):
 		charInfo=api.getReviewPosition().copy()
 		charInfo.expand(textInfos.UNIT_CHARACTER)
 		charInfo.collapse()
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		res=charInfo.move(textInfos.UNIT_CHARACTER,-1)
 		if res==0 or charInfo.compareEndPoints(lineInfo,"startToStart")<0:
 			# Translators: a message reported when review cursor is at the leftmost character of the current navigator object's text.
@@ -1128,6 +1117,7 @@ class GlobalCommands(ScriptableObject):
 	def script_review_currentCharacter(self,gesture):
 		info=api.getReviewPosition().copy()
 		info.expand(textInfos.UNIT_CHARACTER)
+		# Explicitly tether here
 		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		scriptCount=scriptHandler.getLastScriptRepeatCount()
 		if scriptCount==0:
@@ -1151,7 +1141,6 @@ class GlobalCommands(ScriptableObject):
 		charInfo=api.getReviewPosition().copy()
 		charInfo.expand(textInfos.UNIT_CHARACTER)
 		charInfo.collapse()
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		res=charInfo.move(textInfos.UNIT_CHARACTER,1)
 		if res==0 or charInfo.compareEndPoints(lineInfo,"endToEnd")>=0:
 			# Translators: a message reported when review cursor is at the rightmost character of the current navigator object's text.
@@ -1174,7 +1163,6 @@ class GlobalCommands(ScriptableObject):
 		info.move(textInfos.UNIT_CHARACTER,-1)
 		api.setReviewPosition(info)
 		info.expand(textInfos.UNIT_CHARACTER)
-		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
 		speech.speakMessage(_("Right"))
 		speech.speakTextInfo(info,unit=textInfos.UNIT_CHARACTER,reason=controlTypes.REASON_CARET)
 	# Translators: Input help mode message for move review cursor to end of current line command.

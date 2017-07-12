@@ -68,10 +68,13 @@ def message(text):
 
 def reviewMessage(text):
 	"""Present a message from review or object navigation to the user.
-	The message will always be presented in speech, and also in braille if it is tethered to review or auto tethering is on.
+	The message will always be presented in speech, and also in braille if it is tethered to review.
+	When auto tethering is on, this will also tether to review.
 	@param text: The text of the message.
 	@type text: str
 	"""
 	speech.speakMessage(text)
-	if braille.handler.getTether() == braille.handler.TETHER_REVIEW or config.conf["braille"]["autoTether"]:
+	if config.conf["braille"]["autoTether"]:
+		braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=True)
+	if braille.handler.getTether() == braille.handler.TETHER_REVIEW:
 		braille.handler.message(text)
