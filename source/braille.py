@@ -1297,7 +1297,7 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		self.setTether(tether, auto=False)
 
 	def _get_isAutoTethered(self):
-		self._tether is not config.conf["braille"]["tetherTo"]
+		return self._tether is not config.conf["braille"]["tetherTo"]
 
 	def _get_shouldAutoTether(self):
 		return self.enabled and config.conf["braille"]["autoTether"]
