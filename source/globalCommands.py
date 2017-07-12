@@ -1693,11 +1693,11 @@ class GlobalCommands(ScriptableObject):
 
 	def script_braille_toggleTether(self, gesture):
 		if config.conf["braille"]["tetherTo"] == braille.handler.TETHER_FOCUS:
-			braille.handler.setTether(braille.handler.TETHER_REVIEW)
+			braille.handler.setTether(braille.handler.TETHER_REVIEW, auto=False)
 			# Translators: One of the options for tethering braille (see the comment on "braille tethered to" message for more information).
 			tetherMsg = _("review")
 		else:
-			braille.handler.setTether(braille.handler.TETHER_FOCUS)
+			braille.handler.setTether(braille.handler.TETHER_FOCUS, auto=False)
 			# Translators: One of the options for tethering braille (see the comment on "braille tethered to" message for more information).
 			tetherMsg = _("focus")
 		# Translators: Reports which position braille is tethered to (braille can be tethered to either focus or review position).
