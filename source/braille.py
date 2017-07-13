@@ -1284,8 +1284,6 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 	def setTether(self, tether, auto=False):
 		if tether == self._tether or (auto and not self.shouldAutoTether):
 			return
-		if auto and tether == self.TETHER_REVIEW and eventHandler.isPendingEvents(eventName="focusEntered"):
-			return
 		if not auto:
 			config.conf["braille"]["tetherTo"] = tether
 		self._tether = tether
