@@ -27,6 +27,9 @@ _pendingEventCountsLock=threading.RLock()
 #: the last object queued for a gainFocus event. Useful for code running outside NVDA's core queue 
 lastQueuedFocusObject=None
 
+#: Whether the last focus or caret event changed or is about to change the review cursor due to following
+lastReviewMoveDueToFollowing = False
+
 def queueEvent(eventName,obj,**kwargs):
 	"""Queues an NVDA event to be executed.
 	@param eventName: the name of the event type (e.g. 'gainFocus', 'nameChange')
