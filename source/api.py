@@ -1,6 +1,6 @@
 #api.py
 #A part of NonVisual Desktop Access (NVDA)
-#Copyright (C) 2006-2012 NVDA Contributors
+#Copyright (C) 2006-2017 NV Access Limited, Babbage B.V.
 #This file is covered by the GNU General Public License.
 #See the file COPYING for more details.
 
@@ -250,8 +250,8 @@ def moveMouseToNVDAObject(obj):
 	location=obj.location
 	if location and (len(location)==4):
 		(left,top,width,height)=location
-		x=(left+left+width)/2
-		y=(top+top+height)/2
+		x=left+(width/2)
+		y=top+(height/2)
 		winUser.setCursorPos(x,y)
 
 def processPendingEvents(processEventQueue=True):
