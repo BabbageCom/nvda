@@ -28,7 +28,7 @@ from logHandler import log
 from UIAUtils import *
 from NVDAObjects.window import Window
 from NVDAObjects import NVDAObjectTextInfo, InvalidNVDAObject
-from NVDAObjects.behaviors import ProgressBar, EditableTextWithoutAutoSelectDetection, Dialog, Notification, EditableTextWithSuggestions
+from NVDAObjects.behaviors import ProgressBar, EditableTextWithoutAutoSelectDetection, Dialog, Notification, EditableTextWithSuggestions, DisplayModel
 import braille
 import time
 from locationHelper import RectLTWH
@@ -1600,3 +1600,10 @@ class SuggestionListItem(UIA):
 			self.reportFocus()
 			# Display results as flash messages.
 			braille.handler.message(braille.getBrailleTextForProperties(name=self.name, role=self.role, positionInfo=self.positionInfo))
+
+class DisplayModelUIA(DisplayModel, UIA):
+
+	def __init__(self,windowHandle=None,UIAElement=None,initialUIACachedPropertyIDs=None):
+		DisplayModel.__init__(self,windowHandle=windowHandle,location=location)
+		UIA.__init__(self,windowHandle=windowHandle,UIAElement=UIAElement,initialUIACachedPropertyIDs=initialUIACachedPropertyIDs)
+

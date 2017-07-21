@@ -25,6 +25,9 @@ def wcharToInt(c):
 	i=ord(c)
 	return c_short(i).value
 
+#: Display model specific unit constant for text chunks in the display model
+UNIT_DISPLAYCHUNK="displayChunk"
+
 def detectStringDirection(s):
 	direction=0
 	for b in (unicodedata.bidirectional(ch) for ch in s):
@@ -469,6 +472,22 @@ class DisplayModelTextInfo(OffsetsTextInfo):
 				break
 		return startOffset,endOffset
 
+	def _getDisplayChunkOffsets(self,offset):
+		startOffset=0
+		endOffset=0
+		for chunk in self.getTextInChunks(UNIT_DISPLAYCHUNK):
+			startOffset=endOffset
+			endOffset+=len(chunk)
+			if endOffset>offset:
+				break
+		return startOffset,endOffset
+
+	def _getUnitOffsets(self,unit,offset):
+		if unit==UNIT_DISPLAYCHUNK:
+			offsetsFunc=self._getDisplayChunkOffsets
+			return offsetsFunc(offset)
+		return super(DisplayModelTextInfo,self)._getUnitOffsets(unit,offset)
+
 	def _get_clipboardText(self):
 		return "\r\n".join(x.strip('\r\n') for x in self.getTextInChunks(textInfos.UNIT_LINE))
 
@@ -486,8 +505,18 @@ class DisplayModelTextInfo(OffsetsTextInfo):
 				if lineEndOffset>=self._endOffset:
 					return
 			return
+		# Display chunks are specific for the display model
+		elif unit is UNIT_DISPLAYCHUNK:
+			for chunk in self._getFieldsInRange(self._startOffset,self._endOffset):
+				if not isinstance(chunk,basestring):
+					continue
+				yield chunk
+			return
 		for chunk in super(DisplayModelTextInfo,self).getTextInChunks(unit):
 			yield chunk
+
+class SingleWindowDisplayModelTextInfo(DisplayModelTextInfo):
+	includeDescendantWindows=False
 
 class EditableTextDisplayModelTextInfo(DisplayModelTextInfo):
 

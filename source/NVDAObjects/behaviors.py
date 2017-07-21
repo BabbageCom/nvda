@@ -28,6 +28,9 @@ import api
 import ui
 import braille
 import nvwave
+from locationHelper import Location, toLocation
+import displayModel
+from operator import attrgetter
 
 class ProgressBar(NVDAObject):
 
@@ -684,3 +687,212 @@ class WebDialog(NVDAObject):
 		if self.parent.treeInterceptor:
 			return True
 		return False
+
+class DisplayModel(NVDAObject):
+	TextInfo = displayModel.SingleWindowDisplayModelTextInfo
+	#: Whether this class has been explicitly set as an overlay for an object (e.g. in a plugin).
+	INIT_TYPE_EXPLICIT="explicit"
+	#: Whether this class has been implicitly set as an overlay for an object (i.e. as a child of an explicit instance).
+	INIT_TYPE_IMPLICIT="implicit"
+	#: Whether this class is the base class for an object.
+	INIT_TYPE_BASIC="BASIC"
+
+	def initOverlayClass(self):
+		self.initType=self.INIT_TYPE_EXPLICIT
+
+	def __init__(self, parent=None, location=None):
+		NVDAObject.__init__(self)
+		if parent:
+			self.parent=parent
+		self._location=location
+		self.initType=self.INIT_TYPE_BASIC if self.APIClass is DisplayModel else self.INIT_TYPE_IMPLICIT
+		self.processID = parent.processID
+		try:
+			# HACK: Some NVDA code depends on window properties, even for non-Window objects.
+			self.windowHandle = parent.windowHandle
+			self.windowClassName = parent.windowClassName
+			self.windowControlID = parent.windowControlID
+		except AttributeError:
+			pass
+
+	def injectOverlay(self,obj):
+		if not obj:
+			return None
+		if isinstance(obj,DisplayModel):
+			return obj
+		# reconstruct the kwargs for this object, thereby adding its location to trigger the overlay init
+		kwargs=dict(windowHandle=obj.windowHandle, location=obj.location)
+		# Reconstruct the kwargs
+		if getattr(obj,"IAccessibleObject",None):
+			from NVDAObjects.IAccessible import DisplayModelIAccessible
+			kwargs['IAccessibleObject']=obj.IAccessibleObject
+			kwargs['IAccessibleChildID']=obj.IAccessibleChildID
+			kwargs['event_windowHandle']=obj.event_windowHandle
+			kwargs['event_objectID']=obj.event_objectID
+			kwargs['event_childID']=obj.event_childID
+			return DisplayModelIAccessible(**kwargs)
+		elif getattr(obj,"UIAElement",None):
+			from NVDAObjects.UIA import DisplayModelUIA
+			kwargs['UIAElement']=obj.UIAElement
+			kwargs['initialUIACachedPropertyIDs']=obj.initialUIACachedPropertyIDs
+			return DisplayModelUIA(**kwargs)
+		elif not obj.kwargsFromSuper(kwargs):
+			return None
+		return obj.APIClass(chooseBestAPI=False,**kwargs)
+
+	def _isEqual(self,other):
+		if getattr(self,"_location",None) and getattr(other,"_location",None) and self._location==other._location:
+			return True
+		if hasattr(other,"makeTextInfo") and self.makeTextInfo(textInfos.POSITION_ALL)==other.makeTextInfo(textInfos.POSITION_ALL):
+			return True
+		if self.initType!=self.INIT_TYPE_BASIC:
+			return super(DisplayModel,self)._isEqual(other)
+		return False
+
+	def _get_location(self):
+		return getattr(self,"_location",None) or super(DisplayModel,self)._get_location()
+
+	def _get_name(self):
+		if self.initType==self.INIT_TYPE_BASIC:
+			return self.makeTextInfo("all").text.strip()
+		return super(DisplayModel,self)._get_name()
+
+	def _get_role(self):
+		if self.initType==self.INIT_TYPE_BASIC:
+			return controlTypes.ROLE_STATICTEXT
+		return super(DisplayModel,self)._get_role()
+
+	def _get_children(self):
+		return sorted(self.superChildren+self.displayModelChildren,key=attrgetter("location.top","location.left"))
+
+	def _get_displayModelChildren(self):
+		ti=self.makeTextInfo(textInfos.POSITION_ALL)
+		children=[]
+		startOffset=0
+		endOffset=0
+		chunks=list(ti.getTextInChunks(displayModel.UNIT_DISPLAYCHUNK))
+		if not len(chunks)>1:
+			return []
+		for chunk in chunks:
+			startOffset=endOffset
+			endOffset+=len(chunk)
+			if startOffset==endOffset or not chunk.strip():
+				# Empty chunk, nothing to do
+				continue
+			chunk=chunk.strip()
+			# All character location coordinates are logical coordinates.
+			# A new object should have physicals, though
+			location=toLocation(ti._storyFieldsAndRects[1][startOffset:endOffset]).toPhysical(self.windowHandle)
+			children.append(DisplayModel(parent=self, location=location))
+		return children
+
+	def _get_superChildren(self):
+		"""Get the children from super, inject our overlay and use the firstChild/next approach"""
+		children=[]
+		child=self.injectOverlay(super(DisplayModel,self)._get_firstChild())
+		while child:
+			children.append(child)
+			child=self.injectOverlay(super(DisplayModel,child)._get_next())
+		return children
+
+	def _get_firstChild(self):
+		if self.initType!=self.INIT_TYPE_BASIC:
+			superChild=self.injectOverlay(super(DisplayModel,self)._get_firstChild())
+		else:
+			superChild=None
+		if not self.displayModelChildren:
+			return superChild
+		displayModelChild=self.displayModelChildren[0]
+		if not superChild:
+			return displayModelChild
+		if ((displayModelChild.location<=superChild.location or superChild.	location<=displayModelChild.location) and displayModelChild.windowHandle==superChild.windowHandle) or superChild.location.topLeft<=displayModelChild.location.topLeft:
+			return superChild
+		return displayModelChild
+
+	def _get_lastChild(self):
+		if self.initType!=self.INIT_TYPE_BASIC:
+			superChild=self.injectOverlay(super(DisplayModel,self)._get_lastChild())
+		else:
+			superChild=None
+		if not self.displayModelChildren:
+			return superChild
+		displayModelChild=self.displayModelChildren[-1]
+		if not superChild:
+			return displayModelChild
+		if ((displayModelChild.location<=superChild.location or superChild.location<=displayModelChild.location) and displayModelChild.windowHandle==superChild.windowHandle) or superChild.location.topLeft>=displayModelChild.location.topLeft:
+			return superChild
+		return displayModelChild
+
+	def _get_parent(self):
+		superParent=super(DisplayModel,self)._get_parent()
+		# superParent is already a DisplayModel instance when it is explicitly set
+		if self.initType==self.INIT_TYPE_EXPLICIT:
+			return superParent
+		if self.initType==self.INIT_TYPE_IMPLICIT:
+			return self.injectOverlay(superParent)
+		if self.initType==self.INIT_TYPE_BASIC and getattr(self,"windowHandle",None):
+			# We assume that the parent of a basic DisplayModel is a window
+			from NVDAObjects.window import Window
+			r=ctypes.wintypes.RECT()
+			ctypes.windll.user32.GetWindowRect(self.windowHandle,ctypes.byref(r))
+			location=toLocation(r)
+			kwargs=dict(windowHandle=self.windowHandle)
+			APIClass=Window.findBestAPIClass(kwargs,relation="parent")
+			kwargs['location']=location
+			from NVDAObjects.IAccessible import IAccessible,DisplayModelIAccessible
+			from NVDAObjects.UIA import UIA,DisplayModelUIA
+			try:
+				if APIClass is IAccessible:
+					return DisplayModelIAccessible(**kwargs)
+				elif APIClass is UIA:
+					return DisplayModelUIA(**kwargs)
+			except:
+				pass
+			kwargs.pop('location')
+			return APIClass(**kwargs)
+		return None
+
+	def _get_next(self):
+		if self.initType==self.INIT_TYPE_EXPLICIT or not isinstance(self.parent,DisplayModel):
+			return super(DisplayModel,self)._get_next()
+		children=self.parent.children
+		try:
+			index=children.index(self)
+			next=children[index+1]
+		except (IndexError, ValueError):
+			next=None
+		return next
+
+	def _get_previous(self):
+		if self.initType==self.INIT_TYPE_EXPLICIT or not isinstance(self.parent,DisplayModel):
+			return super(DisplayModel,self)._get_previous()
+		children=self.parent.children
+		children.reverse()
+		try:
+			index=children.index(self)
+			previous=children[index+1]
+		except (IndexError, ValueError):
+			previous=None
+		return previous
+
+	def setFocus(self):
+		if self.initType==self.INIT_TYPE_BASIC:
+			self.event_gainFocus()
+		super(DisplayModel,self).setFocus()
+
+class FocusRectContainer(DisplayModel):
+	"""Creates and focuses fake focus objects based on display model information for focus rectangle changes.
+	This can be used as an overlay class for objects (such as grids)
+	which don't expose child objects but fire displayModel_drawFocusRectNotify events for cell selection instead.
+	To inherit from L{DisplayModel}'s object navigation facilities, make sure this class is the first in the mro."""
+
+	def event_displayModel_drawFocusRectNotify(self, rect):
+		obj = DisplayModel(parent=self, location=toLocation(rect))
+		obj.setFocus()
+
+class SelectionBasedFocusContainer(TextMonitor):
+	"""Creates and focuses fake focus objects based on  TextInfo selection changes.
+	This can be used as an overlay class for objects (such as grids)
+	which don't expose child objects but reveal selection changes using their L{TextInfo}."""
+
+

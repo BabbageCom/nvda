@@ -15,9 +15,11 @@ import api
 import displayModel
 import eventHandler
 from NVDAObjects import NVDAObject
-from NVDAObjects.behaviors import EditableText, LiveText
+from NVDAObjects.behaviors import EditableText, TextMonitor, LiveText
 import watchdog
 from locationHelper import toRectLTWH
+import textInfos
+from operator import attrgetter
 
 re_WindowsForms=re.compile(r'^WindowsForms[0-9]*\.(.*)\.app\..*$')
 re_ATL=re.compile(r'^ATL:(.*)$')
@@ -44,7 +46,7 @@ class WindowProcessHandleContainer(object):
 	@ivar processHandle: The actual handle which can be used in any win32 calls that need it.
 	@type processHandle: int
 	"""
- 
+
 	def __init__(self,windowHandle):
 		"""
 		@param windowHandle: the handle of the window whos process handle should be retreaved.
@@ -197,8 +199,6 @@ An NVDAObject for a window
 
 	def _get_displayText(self):
 		"""The text at this object's location according to the display model for this object's window."""
-		import displayModel
-		import textInfos
 		return displayModel.DisplayModelTextInfo(self,textInfos.POSITION_ALL).text
 
 	def redraw(self):
@@ -206,9 +206,12 @@ An NVDAObject for a window
 		"""
 		left, top, width, height = self.location
 		left, top = winUser.ScreenToClient(self.windowHandle, left, top)
-		winUser.RedrawWindow(self.windowHandle,
-			winUser.RECT(left, top, left + width, top + height), None,
-			winUser.RDW_INVALIDATE | winUser.RDW_UPDATENOW)
+		winUser.RedrawWindow(
+			self.windowHandle,
+			winUser.RECT(left, top, left + width, top + height),
+			None,
+			winUser.RDW_INVALIDATE | winUser.RDW_UPDATENOW
+		)
 
 	def _get_windowText(self):
 		textLength=watchdog.cancellableSendMessage(self.windowHandle,winUser.WM_GETTEXTLENGTH,0,0)
@@ -301,7 +304,7 @@ An NVDAObject for a window
 			kwargs=dict(windowHandle=newWindowHandle)
 			newAPIClass=Window.findBestAPIClass(kwargs,relation=relation)
 			oldAPIClass=self.APIClass
-			if newAPIClass and newAPIClass!=oldAPIClass:
+			if (newAPIClass and newAPIClass!=oldAPIClass):
 				return newAPIClass(chooseBestAPI=False,**kwargs)
 		return obj
 
@@ -392,18 +395,21 @@ class DisplayModelEditableText(EditableText, Window):
 		# Don't report value changes for editable text fields.
 		pass
 
-class DisplayModelLiveText(LiveText, Window):
-	TextInfo = displayModel.EditableTextDisplayModelTextInfo
+class DisplayModelTextMonitor(TextMonitor, Window):
+	TextInfo = displayModel.DisplayModelTextInfo
 
 	def startMonitoring(self):
 		# Force the window to be redrawn, as our display model might be out of date.
 		self.redraw()
 		displayModel.requestTextChangeNotifications(self, True)
-		super(DisplayModelLiveText, self).startMonitoring()
+		super(DisplayModelTextMonitor, self).startMonitoring()
 
 	def stopMonitoring(self):
-		super(DisplayModelLiveText, self).stopMonitoring()
+		super(DisplayModelTextMonitor, self).stopMonitoring()
 		displayModel.requestTextChangeNotifications(self, False)
+
+class DisplayModelLiveText(LiveText, DisplayModelTextMonitor):
+	TextInfo = displayModel.EditableTextDisplayModelTextInfo
 
 windowClassMap={
 	"EDIT":"Edit",
