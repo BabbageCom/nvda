@@ -196,6 +196,41 @@ class TextInfoQuickNavItem(QuickNavItem):
 		caret=self.document.makeTextInfo(textInfos.POSITION_CARET)
 		return self.textInfo.compareEndPoints(caret, "startToStart") > 0
 
+	def _getLabelForProperties(labelPropertyGetter):
+		"""
+		Fetches required properties for this L{TextInfoQuickNavItem} and constructs a label to be shown in an elements list.
+		@Param labelPropertyGetter: A callable taking 1 argument.
+			For example, if L{itemType} is landmark, the callable must return the landmark type when the landmark argument is provided to it.
+			Alternative attributes or dictionary keys might be name or value
+			A callable might look like the __getattribute__ method on an L{NVDAObject}, or the __getitem__ on a L{Dict}
+		"""
+		value = self.textInfo.text.strip()
+		if self.itemType is "heading":
+			return value
+		name = labelPropertyGetter("name")
+		elif self.itemType is "landmark":
+			landmark = aria.landmarkRoles[labelPropertyGetter("landmark")]
+			labelParts = (name, landmark)
+		else: 
+			role = labelPropertyGetter("role")
+			roleText = role = controlTypes.roleLabels[role]
+			# Translators: Reported label in the elements list for an element which which has no name and value
+			unlabeled = _("Unlabeled")
+			realStates = labelPropertyGetter("states")
+			positiveStates = " ".join(controlTypes.stateLabels[st] for st in controlTypes.processPositiveStates(role, realStates, controlTypes.REASON_FOCUS, realStates))
+			negativeStates = " ".join(controlTypes.negativeStateLabels[st] for st in controlTypes.processNegativeStates(role, realStates, controlTypes.REASON_FOCUS, realStates))
+			if self.itemType is "formField":
+				if role in (controlTypes.ROLE_BUTTON,controlTypes.ROLE_DROPDOWNBUTTON,controlTypes.ROLE_TOGGLEBUTTON,controlTypes.ROLE_SPLITBUTTON,controlTypes.ROLE_MENUBUTTON,controlTypes.ROLE_DROPDOWNBUTTONGRID,controlTypes.ROLE_SPINBUTTON,controlTypes.ROLE_TREEVIEWBUTTON):
+					labelParts = (value or unlabeled, roleText, positiveStates, negativeStates)
+				else:
+					labelParts = (name or unlabeled, role, positiveStates, negativeStates, value)
+			elif self.itemType in "link", "button":
+				labelParts = (value or unlabeled, positiveStates, negativeStates)
+		label = " ".join(lp for lp in labelParts if lp)
+		return label
+
+
+
 class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 	scriptCategory = inputCore.SCRCAT_BROWSEMODE
 	disableAutoPassThrough = False
