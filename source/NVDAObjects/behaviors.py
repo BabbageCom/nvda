@@ -28,7 +28,7 @@ import api
 import ui
 import braille
 import nvwave
-from locationHelper import Location, toLocation
+from locationHelper import Location, toLocation, Point
 import displayModel
 from operator import attrgetter
 
@@ -185,6 +185,7 @@ class EditableTextWithAutoSelectDetection(EditableText):
 
 	def event_textRemove(self):
 		self.hasContentChangedSinceLastSelection = True
+
 
 class EditableTextWithoutAutoSelectDetection(editableText.EditableTextWithoutAutoSelectDetection, EditableText):
 	"""In addition to L{EditableText}, provides scripts to report appropriately when the selection changes.
@@ -706,12 +707,12 @@ class DisplayModel(NVDAObject):
 			self.parent=parent
 		self._location=location
 		self.initType=self.INIT_TYPE_BASIC if self.APIClass is DisplayModel else self.INIT_TYPE_IMPLICIT
-		self.processID = parent.processID
+		self.processID = self.parent.processID
 		try:
 			# HACK: Some NVDA code depends on window properties, even for non-Window objects.
-			self.windowHandle = parent.windowHandle
-			self.windowClassName = parent.windowClassName
-			self.windowControlID = parent.windowControlID
+			self.windowHandle = self.parent.windowHandle
+			self.windowClassName = self.parent.windowClassName
+			self.windowControlID = self.parent.windowControlID
 		except AttributeError:
 			pass
 
@@ -741,8 +742,8 @@ class DisplayModel(NVDAObject):
 		return obj.APIClass(chooseBestAPI=False,**kwargs)
 
 	def _isEqual(self,other):
-		if getattr(self,"_location",None) and getattr(other,"_location",None) and self._location==other._location:
-			return True
+		if getattr(self,"_location",None) and getattr(other,"_location",None) and self._location!=other._location:
+			return False
 		if hasattr(other,"makeTextInfo") and self.makeTextInfo(textInfos.POSITION_ALL)==other.makeTextInfo(textInfos.POSITION_ALL):
 			return True
 		if self.initType!=self.INIT_TYPE_BASIC:
@@ -876,11 +877,23 @@ class DisplayModel(NVDAObject):
 		return previous
 
 	def setFocus(self):
-		if self.initType==self.INIT_TYPE_BASIC:
+		if isinstance(self.parent, SelectionBasedFocusContainer):
+			# A SelectionBasedFocusContainer stops monitoring when it loses focus, and it shouldn't
+			# We fake a focus event here
 			self.event_gainFocus()
+			if config.conf["reviewCursor"]["followFocus"]:
+				api.setNavigatorObject(self, isFocus=True)
+		elif self.initType==self.INIT_TYPE_BASIC:
+			eventHandler.queueEvent("gainFocus", self)
 		super(DisplayModel,self).setFocus()
 
-class FocusRectContainer(DisplayModel):
+	def getBrailleRegions(self, review=False):
+		if self.initType==self.INIT_TYPE_BASIC:
+			yield braille.TextInfoRegion(self)
+			return
+		raise NotImplementedError
+
+class FocusRectBasedFocusContainer(DisplayModel):
 	"""Creates and focuses fake focus objects based on display model information for focus rectangle changes.
 	This can be used as an overlay class for objects (such as grids)
 	which don't expose child objects but fire displayModel_drawFocusRectNotify events for cell selection instead.
@@ -893,6 +906,69 @@ class FocusRectContainer(DisplayModel):
 class SelectionBasedFocusContainer(TextMonitor):
 	"""Creates and focuses fake focus objects based on  TextInfo selection changes.
 	This can be used as an overlay class for objects (such as grids)
-	which don't expose child objects but reveal selection changes using their L{TextInfo}."""
+	which don't expose child objects but reveal cell selection changes using their L{TextInfo}.
+	This means that L{TextInfo} should implement L{_getSelectionOffsets.
+	The base implementation also relies on L{TextInfo._getPointFromOffset}
+	"""
 
+	def event_gainFocus(self):
+		super(SelectionBasedFocusContainer, self).event_gainFocus()
+		self.startMonitoring()
 
+	def event_loseFocus(self):
+		self.stopMonitoring()
+
+	def _getSelectionOffsets(self):
+		"""Gets the selection offsets from L{TextInfo}.
+		The base implementation simply returns L{TextInfo._getSelectionOffsets}
+		The base implementation of L{_getSelectionRect} uses this method to retrieve the bounding rectangle of the selection.
+		Subclasses should override this if there is a better way to retrieve the selection offsets.
+		For example, for L{displayModel.DisplayModelTextInfo}
+		it might be necessary to override the foreground and background selection colors before fetching the offsets.
+		@return: start and end offsets for the selection.
+		@rtype: tuple(int,int)
+		"""
+		return self.makeTextInfo(textInfos.POSITION_ALL)._getSelectionOffsets()
+
+	def _getSelectionRect(self):
+		"""Gets the bounding rectangle for the selection.
+		The base implementation uses L{_getSelectionOffsets} and L{TextInfo._getPointFromOffset}
+		to retrieve the points for the range of selection offsets.
+		Subclasses should override this if there is a better way to retrieve the selection rectangle.
+		For example, L{displayModel.DisplayModelTextInfo} provides a rectangle for every offset, which is more accurate.
+		@return: bounding rectangle for the selection
+		@rtype: locationHelper.Rect
+		"""
+		ti = self.makeTextInfo(textInfos.POSITION_ALL)
+		points = (Point(*ti._getPointFromOffset(offset)) for offset in xrange(*self._getSelectionOffsets()))
+		return toRect(*points)
+
+	def _monitor(self):
+		try:
+			oldSelectionOffsets = self._getSelectionOffsets()
+		except:
+			log.debugWarning("Error getting initial selection offsets", exc_info=True)
+			oldSelectionOffsets = ()
+		while self._keepMonitoring:
+			self._event.wait()
+			if not self._keepMonitoring:
+				break
+			if self.STABILIZE_DELAY > 0:
+				# wait for the text to stabilise.
+				time.sleep(self.STABILIZE_DELAY)
+				if not self._keepMonitoring:
+					# Monitoring was stopped while waiting for the text to stabilise.
+					break
+			self._event.clear()
+
+			try:
+				newSelectionOffsets = self._getSelectionOffsets()
+				rect = self._getSelectionRect()
+			except:
+				log.debugWarning("Error getting new selection rectangle", exc_info=True)
+				newSelectionOffsets = ()
+				rect = None
+			if rect and oldSelectionOffsets != newSelectionOffsets:
+				obj = DisplayModel(parent=self, location=rect.toLocation())
+				obj.setFocus()			
+			oldSelectionOffsets = newSelectionOffsets

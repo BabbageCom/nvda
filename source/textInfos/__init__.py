@@ -231,7 +231,7 @@ class TextInfo(baseObject.AutoPropertyObject):
 	@ivar bookmark: A unique identifier that can be used to make another textInfo object at this position.
 	@type bookmark: L{Bookmark}
 	"""
- 
+
 	def __init__(self,obj,position):
 		"""Constructor.
 		Subclasses must extend this, calling the superclass method first.

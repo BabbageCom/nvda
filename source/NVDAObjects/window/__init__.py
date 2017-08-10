@@ -15,7 +15,7 @@ import api
 import displayModel
 import eventHandler
 from NVDAObjects import NVDAObject
-from NVDAObjects.behaviors import EditableText, TextMonitor, LiveText
+from NVDAObjects.behaviors import EditableText, TextMonitor, LiveText, SelectionBasedFocusContainer
 import watchdog
 from locationHelper import toRectLTWH
 import textInfos
@@ -410,6 +410,23 @@ class DisplayModelTextMonitor(TextMonitor, Window):
 
 class DisplayModelLiveText(LiveText, DisplayModelTextMonitor):
 	TextInfo = displayModel.EditableTextDisplayModelTextInfo
+
+class DisplayModelSelectionBasedFocusContainer(SelectionBasedFocusContainer, DisplayModelTextMonitor):
+	backgroundSelectionColor = None
+	foregroundSelectionColor = None
+
+	def _getSelectionOffsets(self):
+		ti = self.makeTextInfo(textInfos.POSITION_ALL)
+		if self.backgroundSelectionColor:
+			ti.backgroundSelectionColor = backgroundSelectionColor
+		if self.foregroundSelectionColor:
+			ti.foregroundSelectionColor = foregroundSelectionColor
+		return ti._getSelectionOffsets()
+
+	def _getSelectionRect(self):
+		ti = self.makeTextInfo(textInfos.POSITION_ALL)
+		selectionStart, selectionEnd = self._getSelectionOffsets()
+		return toRect(ti._storyFieldsAndRects[1][selectionStart:selectionEnd]).toPhysical(self.windowHandle)
 
 windowClassMap={
 	"EDIT":"Edit",
