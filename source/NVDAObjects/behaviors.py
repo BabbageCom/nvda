@@ -707,9 +707,9 @@ class DisplayModel(NVDAObject):
 			self.parent=parent
 		self._location=location
 		self.initType=self.INIT_TYPE_BASIC if self.APIClass is DisplayModel else self.INIT_TYPE_IMPLICIT
-		self.processID = self.parent.processID
 		try:
 			# HACK: Some NVDA code depends on window properties, even for non-Window objects.
+			self.processID = self.parent.processID
 			self.windowHandle = self.parent.windowHandle
 			self.windowClassName = self.parent.windowClassName
 			self.windowControlID = self.parent.windowControlID
@@ -825,32 +825,14 @@ class DisplayModel(NVDAObject):
 		return displayModelChild
 
 	def _get_parent(self):
+		if self.initType==self.INIT_TYPE_BASIC:
+			return self.injectOverlay(self.objectFromPoint(*self.location.center))
 		superParent=super(DisplayModel,self)._get_parent()
 		# superParent is already a DisplayModel instance when it is explicitly set
 		if self.initType==self.INIT_TYPE_EXPLICIT:
 			return superParent
 		if self.initType==self.INIT_TYPE_IMPLICIT:
 			return self.injectOverlay(superParent)
-		if self.initType==self.INIT_TYPE_BASIC and getattr(self,"windowHandle",None):
-			# We assume that the parent of a basic DisplayModel is a window
-			from NVDAObjects.window import Window
-			r=ctypes.wintypes.RECT()
-			ctypes.windll.user32.GetWindowRect(self.windowHandle,ctypes.byref(r))
-			location=toLocation(r)
-			kwargs=dict(windowHandle=self.windowHandle)
-			APIClass=Window.findBestAPIClass(kwargs,relation="parent")
-			kwargs['location']=location
-			from NVDAObjects.IAccessible import IAccessible,DisplayModelIAccessible
-			from NVDAObjects.UIA import UIA,DisplayModelUIA
-			try:
-				if APIClass is IAccessible:
-					return DisplayModelIAccessible(**kwargs)
-				elif APIClass is UIA:
-					return DisplayModelUIA(**kwargs)
-			except:
-				pass
-			kwargs.pop('location')
-			return APIClass(**kwargs)
 		return None
 
 	def _get_next(self):
@@ -877,15 +859,18 @@ class DisplayModel(NVDAObject):
 		return previous
 
 	def setFocus(self):
-		if isinstance(self.parent, SelectionBasedFocusContainer):
-			# A SelectionBasedFocusContainer stops monitoring when it loses focus, and it shouldn't
-			# We fake a focus event here
-			self.event_gainFocus()
-			if config.conf["reviewCursor"]["followFocus"]:
-				api.setNavigatorObject(self, isFocus=True)
-		elif self.initType==self.INIT_TYPE_BASIC:
+		if self.initType==self.INIT_TYPE_BASIC:
 			eventHandler.queueEvent("gainFocus", self)
 		super(DisplayModel,self).setFocus()
+
+	def fakeFocus(self):
+		"""Fakes a focus event for this object.
+		In reality, this object's L{event_gainFocus} method will be executed, and it will be set as navigator object.
+		This is required for a L{SelectionBasedFocusContainer}, which stops monitoring when it loses focus.
+		"""
+		self.event_gainFocus()
+		if config.conf["reviewCursor"]["followFocus"]:
+			api.setNavigatorObject(self, isFocus=True)
 
 	def getBrailleRegions(self, review=False):
 		if self.initType==self.INIT_TYPE_BASIC:
@@ -900,8 +885,47 @@ class FocusRectBasedFocusContainer(DisplayModel):
 	To inherit from L{DisplayModel}'s object navigation facilities, make sure this class is the first in the mro."""
 
 	def event_displayModel_drawFocusRectNotify(self, rect):
-		obj = DisplayModel(parent=self, location=toLocation(rect))
+		obj = DisplayModel(location=toLocation(rect))
 		obj.setFocus()
+
+class CaretBasedFocusContainer(DisplayModel, editableText.EditableText):
+	"""Creates and focuses fake focus objects based on display model information and caret movement.
+	This can be used as an overlay class for objects (such as grids)
+	which don't expose child objects but use a caret to indicate position.
+	To inherit from L{DisplayModel}'s object navigation facilities, make sure this class is the first in the mro."""
+
+	TextInfo = displayModel.EditableTextDisplayModelTextInfo
+	announceNewLineText = False
+
+	def script_focusCaretChunk(self,gesture):
+		try:
+			info=self.makeTextInfo(textInfos.POSITION_CARET)
+		except:
+			gesture.send()
+			raise
+		bookmark=info.bookmark
+		gesture.send()
+		caretMoved,info=self._hasCaretMoved(bookmark) 
+		if not caretMoved and self.shouldFireCaretMovementFailedEvents:
+			eventHandler.executeEvent("caretMovementFailed", self, gesture=gesture)
+		if not info:
+			try:
+				info = self.makeTextInfo(textInfos.POSITION_CARET)
+			except:
+				return
+		info.expand("displayChunk")
+		location=toLocation(info._storyFieldsAndRects[1][info._startOffset:info._endOffset]).toPhysical(self.windowHandle)
+		obj=DisplayModel(location=location)
+		obj.fakeFocus()
+
+	def initOverlayClass(self):
+		for gesture in editableText.EditableText._EditableText__gestures:
+			self.bindGesture(gesture, "focusCaretChunk")
+		for gesture in (
+			"kb:tab",
+			"kb:shift+tab",
+		):
+			self.bindGesture(gesture, "focusCaretChunk")
 
 class SelectionBasedFocusContainer(TextMonitor):
 	"""Creates and focuses fake focus objects based on  TextInfo selection changes.
@@ -969,6 +993,6 @@ class SelectionBasedFocusContainer(TextMonitor):
 				newSelectionOffsets = ()
 				rect = None
 			if rect and oldSelectionOffsets != newSelectionOffsets:
-				obj = DisplayModel(parent=self, location=rect.toLocation())
-				obj.setFocus()			
+				obj = DisplayModel(location=rect.toLocation())
+				obj.fakeFocus()
 			oldSelectionOffsets = newSelectionOffsets

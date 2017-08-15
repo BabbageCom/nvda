@@ -507,7 +507,10 @@ class DisplayModelTextInfo(OffsetsTextInfo):
 			return
 		# Display chunks are specific for the display model
 		elif unit is UNIT_DISPLAYCHUNK:
-			for chunk in self._getFieldsInRange(self._startOffset,self._endOffset):
+			length = self._getStoryLength()
+			if length is 0:
+				return
+			for chunk in self._getFieldsInRange(0,length):
 				if not isinstance(chunk,basestring):
 					continue
 				yield chunk
@@ -598,3 +601,7 @@ class EditableTextDisplayModelTextInfo(DisplayModelTextInfo):
 		if start!=end:
 			raise NotImplementedError("Expanded selections not supported")
 		self._setCaretOffset(start)
+
+class SingleWindowEditableTextDisplayModelTextInfo(EditableTextDisplayModelTextInfo):
+	includeDescendantWindows=False
+
