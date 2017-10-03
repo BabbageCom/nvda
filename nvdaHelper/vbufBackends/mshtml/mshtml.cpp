@@ -456,6 +456,7 @@ inline void getAttributesFromHTMLDOMNode(IHTMLDOMNode* pHTMLDOMNode,wstring& nod
 	} else if(nodeName.compare(L"INPUT")==0) {
 		macro_addHTMLAttributeToMap(L"type",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 		macro_addHTMLAttributeToMap(L"value",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
+		macro_addHTMLAttributeToMap(L"checked",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 	} else if(nodeName.compare(L"TD")==0||nodeName.compare(L"TH")==0) {
 		macro_addHTMLAttributeToMap(L"headers",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 		macro_addHTMLAttributeToMap(L"colspan",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
@@ -470,9 +471,6 @@ inline void getAttributesFromHTMLDOMNode(IHTMLDOMNode* pHTMLDOMNode,wstring& nod
 	macro_addHTMLAttributeToMap(L"onmousedown",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 	macro_addHTMLAttributeToMap(L"onmouseup",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 	macro_addHTMLAttributeToMap(L"required",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
-	macro_addHTMLAttributeToMap(L"checked",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
-	macro_addHTMLAttributeToMap(L"unchecked",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
-	macro_addHTMLAttributeToMap(L"invalid",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 	//ARIA properties:
 	macro_addHTMLAttributeToMap(L"role",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
 	macro_addHTMLAttributeToMap(L"aria-valuenow",false,pHTMLAttributeCollection2,attribsMap,tempVar,tempAttribNode);
@@ -954,6 +952,11 @@ if(!(formatState&FORMATSTATE_INSERTED)&&nodeName.compare(L"INS")==0) {
 		IAStates-=STATE_SYSTEM_READONLY;
 	}
 
+	//IE does not expose the checked state for unavailable checked radio buttons and check boxes
+	if((nodeName.compare(L"INPUT")==0)&&(attribsMap.find(L"HTMLAttrib::checked")!=attribsMap.end())) {
+		if(IAStates&STATE_SYSTEM_UNAVAILABLE) IAStates|=STATE_SYSTEM_CHECKED;
+	}
+
 	wstring ariaRole;
 	tempIter=attribsMap.find(L"HTMLAttrib::role");
 	if(tempIter!=attribsMap.end()) {
@@ -995,7 +998,7 @@ if(!(formatState&FORMATSTATE_INSERTED)&&nodeName.compare(L"INS")==0) {
 	}
 
 	//IE exposes state_linked for anchors with no href, this is wrong
-	if((nodeName.compare(L"A")==0)&&(attribsMap.find(L"HTMLAttrib::href")==attribsMap.end())) {
+	if((nodeName.compare(L"A")==0)&&(attribsMap.find(L"HTMLAttrib::href")!=attribsMap.end())) {
 		if(IAStates&STATE_SYSTEM_LINKED) IAStates-=STATE_SYSTEM_LINKED;
 		if(IAStates&STATE_SYSTEM_FOCUSABLE) IAStates-=STATE_SYSTEM_FOCUSABLE;
 	}
