@@ -1,17 +1,13 @@
 #A part of NonVisual Desktop Access (NVDA)
 #This file is covered by the GNU General Public License.
 #See the file COPYING for more details.
-#Copyright (C) 2011 Sebastian Kruber <sebastian.kruber@hedo.de>
-
-# Parts of this code are inherited from the baum braille driver
-# written by James Teh <jamie@jantrid.net>
-
+#Copyright (C) 2011-2017 NV Access Limited, Sebastian Kruber <sebastian.kruber@hedo.de>, Leonard de Ruijter
 # This file represents the braille display driver for
 # hedo ProfiLine USB, a product from hedo Reha-Technik GmbH
 # see www.hedo.de for more details
 
 import time
-import wx
+import hwIO
 import serial
 import braille
 import inputCore
@@ -50,7 +46,7 @@ HEDO_USB_IDS = frozenset((
 class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 	name = "hedoProfiLine"
 	description = "hedo ProfiLine USB"
-
+	isThreadSafe = True
 	numCells = HEDO_CELL_COUNT
 
 	@classmethod
@@ -59,11 +55,11 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 
 	def __init__(self):
 		super(BrailleDisplayDriver, self).__init__()
-
+		self._deviceFound = False
 		for portInfo in hwPortUtils.listComPorts(onlyAvailable=True):
 			port = portInfo["port"]
 			hwID = portInfo["hardwareID"]
-			#log.info("Found port {port} with hardwareID {hwID}".format(port=port, hwID=hwID))
+			log.debug("Found port {port} with hardwareID {hwID}".format(port=port, hwID=hwID))
 			if not hwID.startswith(r"FTDIBUS\COMPORT"):
 				continue
 			try:
@@ -75,8 +71,8 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 			# At this point, a port bound to this display has been found.
 			# Try talking to the display.
 			try:
-				self._ser = serial.Serial(port, baudrate=HEDO_BAUDRATE, timeout=HEDO_TIMEOUT, writeTimeout=HEDO_TIMEOUT, parity=serial.PARITY_ODD, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE)
-			except serial.SerialException:
+				self._ser = hwIo.Serial(port, baudrate=HEDO_BAUDRATE, timeout=HEDO_TIMEOUT, writeTimeout=HEDO_TIMEOUT, parity=serial.PARITY_ODD, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, onReceive=self._onReceive)
+			except EnvironmentError:
 				continue
 
 			# Prepare a blank line
@@ -87,18 +83,18 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 			self._ser.flush()
 			self._ser.write(cells)
 			self._ser.flush()
-
-			# Read out the input buffer
-			ackS = self._ser.read(2)
-			if chr(HEDO_ACK) in ackS:
+			for i in xrange(3):
+				# An expected response hasn't arrived yet, so wait for it.
+				self._ser.waitForRead(HEDO_TIMEOUT)
+				if self._deviceFound:
+					break
+			if self._deviceFound:
+				# A display responded.
 				log.info("Found hedo ProfiLine connected via {port}".format(port=port))
 				break
-
+			self._ser.close()
 		else:
 			raise RuntimeError("No hedo display found")
-		
-		self._readTimer = wx.PyTimer(self.handleResponses)
-		self._readTimer.Start(HEDO_READ_INTERVAL)
 
 		self._keysDown = set()
 		self._ignoreKeyReleases = False
@@ -106,8 +102,6 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 	def terminate(self):
 		try:
 			super(BrailleDisplayDriver, self).terminate()
-			self._readTimer.Stop()
-			self._readTimer = None
 		finally:
 			# We absolutely must close the Serial object, as it does not have a destructor.
 			# If we don't, we won't be able to re-open it later.
@@ -123,17 +117,14 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 
 		self._ser.write(line)
 
-	def handleResponses(self, wait=False):
-		while wait or self._ser.inWaiting():
-			data = self._ser.read(1)
-			if data:
-				# do not handle acknowledge bytes
-				if data != chr(HEDO_ACK):
-					self.handleData(ord(data))
-			wait = False
+	def _onReceive(self, data):
+		if data == chr(HEDO_ACK):
+			if not self._deviceFound:
+				self._deviceFound=True
+		else:
+			self.handleData(ord(data))
 
 	def handleData(self, data):
-
 		if data >= HEDO_CR_BEGIN and data <= HEDO_CR_END:
 			# Routing key is pressed
 			try:

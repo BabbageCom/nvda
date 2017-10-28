@@ -64,14 +64,14 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver):
 			self._ser.flush()
 			for i in xrange(3):
 				# An expected response hasn't arrived yet, so wait for it.
-				self._ser.waitForRead(TIMEOUT)
+				self._ser.waitForRead(HEDO_MOBIL_TIMEOUT)
 				if self._deviceFound:
 					break
 			if self._deviceFound:
 				# A display responded.
 				log.info("Found hedo MobilLine connected via {port}".format(port=port))
 				break
-			self._dev.close()
+			self._ser.close()
 		else:
 			raise RuntimeError("No display found")
 
