@@ -100,10 +100,10 @@ KEYS_ESITIME = OrderedDict({
 	0x02: "l2",
 	0x04: "l3",
 	0x08: "l4",
-	0x10: "l8",
-	0x20: "l7",
-	0x40: "l6",
-	0x80: "l5",
+	0x10: "l5",
+	0x20: "l6",
+	0x40: "l7",
+	0x80: "l8",
 })
 KEYS_ESITIME.update(KEYS_STICK)
 
