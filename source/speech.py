@@ -1081,10 +1081,10 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 				positionInfoList.append(_('level %s')%propertyValues['positionInfo_level'])
 	if positionInfoList:
 		textDict['positionInfo']=CHUNK_SEPARATOR.join(info for info in positionInfoList if info)
-	speechPropertiesOrder=config.conf['presentation']['speechPropertiesOrder']
+	speechPropertiesOrder=['name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo']
 	for property in speechPropertiesOrder:
 		if property in textDict:
-			textList.append(textDict.get('property'))
+			textList.append(textDict[property])
 	return CHUNK_SEPARATOR.join([x for x in textList if x])
 
 def getControlFieldSpeech(attrs,ancestorAttrs,fieldType,formatConfig=None,extraDetail=False,reason=None):

@@ -30,6 +30,7 @@ import winKernel
 import extensionPoints
 import profileUpgrader
 from .configSpec import confspec
+from customConfigTypes import *
 
 #: True if NVDA is running as a Windows Store Desktop Bridge application
 isAppX=False
@@ -321,7 +322,7 @@ class ConfigManager(object):
 		#: Whether profile triggers are enabled (read-only).
 		#: @type: bool
 		self.profileTriggersEnabled = True
-		self.validator = Validator()
+		self.validator = Validator({"fixed_string_list": is_fixed_string_list})
 		self.rootSection = None
 		self._shouldHandleProfileSwitch = True
 		self._pendingHandleProfileSwitch = False

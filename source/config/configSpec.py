@@ -13,9 +13,8 @@ from configobj import ConfigObj
 #: (conforming to old schema versions) will not work correctly with the new schema.
 latestSchemaVersion = 2
 
-#: The maximum number of object properties in speech and braille output. 
-#: Increment this when adding new properties to braille.getBrailleTextForProperties and getSpeechTextForProperties
-objectPropertiesCount = 15
+#: The types of object properties NVDA could announce using speech or braille.
+objectProperties = "'name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo'"
 
 #: The configuration specification string
 #: @type: String
@@ -85,7 +84,10 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 		reportObjectDescriptions = boolean(default=True)
 		reportDynamicContentChanges = boolean(default=True)
 		reportAutoSuggestionsWithSound = boolean(default=True)
-		speechPropertiesOrder = string_list(max={objectPropertiesCount},default=list('name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo'))
+	[[objectProperties]]
+		[[[speech]]]
+			order = fixed_string_list(default=list({objectProperties}))
+			disabled = string_list()
 	[[progressBarUpdates]]
 		reportBackgroundProgressBars = boolean(default=false)
 		#output modes are beep, speak, both, or off
@@ -213,7 +215,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 
 [editableText]
 	caretMoveTimeoutMs = integer(min=0, max=2000, default=100)
-""").format(latestSchemaVersion=latestSchemaVersion,objectPropertiesCount=objectPropertiesCount)
+""").format(latestSchemaVersion=latestSchemaVersion,objectProperties=objectProperties)
 
 #: The configuration specification
 #: @type: ConfigObj
