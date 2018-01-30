@@ -337,7 +337,7 @@ class ConfigManager(object):
 		#: Whether profile triggers are enabled (read-only).
 		#: @type: bool
 		self.profileTriggersEnabled = True
-		self.validator = ConfigValidator({"fixed_string_list": is_fixed_string_list})
+		self.validator = ConfigValidator({"fixed_togglable_string_list": is_fixed_togglable_string_list})
 		self.rootSection = None
 		self._shouldHandleProfileSwitch = True
 		self._pendingHandleProfileSwitch = False

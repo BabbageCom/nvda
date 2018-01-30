@@ -13,9 +13,6 @@ from configobj import ConfigObj
 #: (conforming to old schema versions) will not work correctly with the new schema.
 latestSchemaVersion = 2
 
-#: The types of object properties NVDA could announce using speech or braille.
-objectProperties = "list('name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo')"
-
 #: The configuration specification string
 #: @type: String
 configSpecString = ("""# NVDA Configuration File
@@ -31,7 +28,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 
 # Speech settings
 [speech]
-	# The synthesiser to use
+	# The synthesizer to use
 	synth = string(default=auto)
 	symbolLevel = integer(default=100)
 	trustVoiceLanguage = boolean(default=true)
@@ -85,9 +82,8 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 		reportDynamicContentChanges = boolean(default=True)
 		reportAutoSuggestionsWithSound = boolean(default=True)
 	[[objectProperties]]
-		[[[speech]]]
-			order = fixed_string_list(default={objectProperties})
-			disabled = string_list()
+		speechFocus = fixed_togglable_string_list(default=list('+name','+role','+value','+description','+keyboardShortcut','+cellCoordsText','+rowHeaderText','+rowNumber','+columnHeaderText','+columnNumber','+rowCount','+columnCount','+current','+placeholder','+positionInfo'))
+		speechDocument = fixed_togglable_string_list(default=list('+name','+role','+value','+description','+keyboardShortcut','+cellCoordsText','+rowHeaderText','+rowNumber','+columnHeaderText','+columnNumber','+rowCount','+columnCount','+current','+placeholder','+positionInfo'))
 	[[progressBarUpdates]]
 		reportBackgroundProgressBars = boolean(default=false)
 		#output modes are beep, speak, both, or off
@@ -215,7 +211,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 
 [editableText]
 	caretMoveTimeoutMs = integer(min=0, max=2000, default=100)
-""").format(latestSchemaVersion=latestSchemaVersion,objectProperties=objectProperties)
+""").format(latestSchemaVersion=latestSchemaVersion)
 
 #: The configuration specification
 #: @type: ConfigObj

@@ -9,17 +9,27 @@
 import validate
 from logHandler import log
 
-def is_fixed_string_list(value, default=None):
+def is_fixed_togglable_string_list(value, default=None):
 	"""
-	Check that L{value} is a list of strings,
-	that every list item is part of L{default},
-	and that every item in L{default} is part of L{value}
+	Check that L{value} is a list of strings.
+	Every string should either start with "+" (enable) or "-" (disable)
+	Every list item, regardless whether supposed to enable or disable, should be part of L{default}.
 	"""
 	if isinstance(value, basestring):
 		raise validate.VdtTypeError(value)
-	log.error(default)
 	try:
-		valueLenght = len(value)
+		valueLength = len(value)
 	except TypeError:
 		raise validate.VdtTypeError(value)
-	return validate.is_string_list(value)
+	# validate check functions do not check the default, so this one doesn't either.
+	defaultLength = len(default)
+	if valueLength < defaultLength:
+		raise validate.VdtValueTooShortError(value)
+	if valueLength > defaultLength:
+		raise validate.VdtValueTooLongError(value)
+	for item in value:
+		if not isinstance(item, basestring):
+			raise validate.VdtTypeError(item)
+		if not item.startswith(("+", "-")) or item[1:] not in (s[1:] for s in default):
+			raise validate.VdtValueError(item)
+	return list(value)
