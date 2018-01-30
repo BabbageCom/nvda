@@ -14,7 +14,7 @@ from configobj import ConfigObj
 latestSchemaVersion = 2
 
 #: The types of object properties NVDA could announce using speech or braille.
-objectProperties = "'name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo'"
+objectProperties = "list('name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo')"
 
 #: The configuration specification string
 #: @type: String
@@ -86,7 +86,7 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 		reportAutoSuggestionsWithSound = boolean(default=True)
 	[[objectProperties]]
 		[[[speech]]]
-			order = fixed_string_list(default=list({objectProperties}))
+			order = fixed_string_list(default={objectProperties})
 			disabled = string_list()
 	[[progressBarUpdates]]
 		reportBackgroundProgressBars = boolean(default=false)

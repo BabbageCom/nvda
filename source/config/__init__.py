@@ -28,6 +28,7 @@ import easeOfAccess
 from fileUtils import FaultTolerantFile
 import winKernel
 import extensionPoints
+import inspect
 import profileUpgrader
 from .configSpec import confspec
 from customConfigTypes import *
@@ -299,6 +300,20 @@ def addConfigDirsToPythonPackagePath(module, subdir=None):
 	for addon in addonHandler.getRunningAddons():
 		addon.addToPackagePath(module)
 
+class ConfigValidator(Validator):
+	"""Custom configuration validator that  allows custom config object type check functions to validate against the default value."""
+
+	def _parse_check(self, check):
+		name, args, kwargs, default = super(ConfigValidator,self)._parse_check(check)
+		# validate automatically pops the default kwarg from the kwargs dictionary, since it is only meant for internal use.
+		# However, for our fixed_string_list, we want to validate the supplied value against the default.
+		# See whether we want to re-add default to the kwargs.
+		# This does not support check functions with a **kwargs catch-all.
+		funcSpec = inspect.getargspec(self.functions[name])
+		if "default" in funcSpec.args:
+			kwargs["default"]=default
+		return name, args, kwargs, default 
+
 class ConfigManager(object):
 	"""Manages and provides access to configuration.
 	In addition to the base configuration, there can be multiple active configuration profiles.
@@ -322,7 +337,7 @@ class ConfigManager(object):
 		#: Whether profile triggers are enabled (read-only).
 		#: @type: bool
 		self.profileTriggersEnabled = True
-		self.validator = Validator({"fixed_string_list": is_fixed_string_list})
+		self.validator = ConfigValidator({"fixed_string_list": is_fixed_string_list})
 		self.rootSection = None
 		self._shouldHandleProfileSwitch = True
 		self._pendingHandleProfileSwitch = False

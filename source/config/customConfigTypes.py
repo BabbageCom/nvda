@@ -6,20 +6,20 @@
 
 """Implements validator functions for custom configObj types."""
 
-from validate import *
+import validate
 from logHandler import log
 
-def is_fixed_string_list(value, options=None):
+def is_fixed_string_list(value, default=None):
 	"""
 	Check that L{value} is a list of strings,
-	that every list item is part of L{options},
-	and that every item in L{options} is part of L{value}
+	that every list item is part of L{default},
+	and that every item in L{default} is part of L{value}
 	"""
 	if isinstance(value, basestring):
-		raise VdtTypeError(value)
-	log.error(options)
+		raise validate.VdtTypeError(value)
+	log.error(default)
 	try:
 		valueLenght = len(value)
 	except TypeError:
-		raise VdtTypeError(value)
-	return is_string_list(value)
+		raise validate.VdtTypeError(value)
+	return validate.is_string_list(value)
