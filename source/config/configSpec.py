@@ -82,8 +82,8 @@ schemaVersion = integer(min=0, default={latestSchemaVersion})
 		reportDynamicContentChanges = boolean(default=True)
 		reportAutoSuggestionsWithSound = boolean(default=True)
 	[[objectProperties]]
-		speechFocus = fixed_togglable_string_list(default=list('+name','+role','+value','+description','+keyboardShortcut','+cellCoordsText','+rowHeaderText','+rowNumber','+columnHeaderText','+columnNumber','+rowCount','+columnCount','+current','+placeholder','+positionInfo'))
-		speechDocument = fixed_togglable_string_list(default=list('+name','+role','+value','+description','+keyboardShortcut','+cellCoordsText','+rowHeaderText','+rowNumber','+columnHeaderText','+columnNumber','+rowCount','+columnCount','+current','+placeholder','+positionInfo'))
+		speechFocus = fixed_togglable_string_list(default=list('+name','+role','+states','+value','+description','+keyboardShortcut','+cellCoordsText','+rowHeaderText','+rowNumber','+columnHeaderText','+columnNumber','+rowCount','+columnCount','+current','+placeholder','+positionInfo'))
+		speechDocument = fixed_togglable_string_list(default=list('+name','+role','+states','+value','+description','+keyboardShortcut','+cellCoordsText','+rowHeaderText','+rowNumber','+columnHeaderText','+columnNumber','+rowCount','+columnCount','+current','+placeholder','+positionInfo'))
 	[[progressBarUpdates]]
 		reportBackgroundProgressBars = boolean(default=false)
 		#output modes are beep, speak, both, or off

@@ -1042,10 +1042,10 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 	columnCount=propertyValues.get('columnCount',0)
 	if rowCount:
 		# Translators: Speaks number of rows (example output: 2 rows).
-		textDict['rowCount']=_("%d rows")%rowCount
+		textDict['rowCount']=_("%s rows")%rowCount
 	if columnCount:
 		# Translators: Speaks number of columns (example output: 4 columns).
-		textDict['ColumnCount']=_("%d columns")%columnCount
+		textDict['columnCount']=_("%s columns")%columnCount
 	if rowCount or columnCount:
 		# The caller is entering a table, so ensure that it is treated as a new table, even if the previous table was the same.
 		oldTableID = None
@@ -1081,7 +1081,7 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 				positionInfoList.append(_('level %s')%propertyValues['positionInfo_level'])
 	if positionInfoList:
 		textDict['positionInfo']=CHUNK_SEPARATOR.join(info for info in positionInfoList if info)
-	speechPropertiesOrder=['name','role','value','description','keyboardShortcut','cellCoordsText','rowHeaderText','rowNumber','columnHeaderText','columnNumber','rowCount','columnCount','current','placeholder','positionInfo']
+	speechPropertiesOrder=[property[1:] for property in config.conf['presentation']['objectProperties']['speechFocus'] if property.startswith("+")]
 	for property in speechPropertiesOrder:
 		if property in textDict:
 			textList.append(textDict[property])
