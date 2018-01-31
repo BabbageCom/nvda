@@ -980,6 +980,7 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 	global oldTreeLevel, oldTableID, oldRowNumber, oldColumnNumber
 	textDict={}
 	textList=[]
+	speechPropertiesOrder=[property[1:] for property in config.conf['presentation']['objectProperties']['speechFocus'] if property.startswith("+")]
 	name=propertyValues.get('name')
 	if name:
 		textDict['name']=name
@@ -1059,15 +1060,14 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 	placeholder = propertyValues.get('placeholder', None)
 	if placeholder:
 		textDict['placeholder']=placeholder
-	positionInfoList=[]
 	indexInGroup=propertyValues.get('positionInfo_indexInGroup',0)
 	similarItemsInGroup=propertyValues.get('positionInfo_similarItemsInGroup',0)
 	if 0<indexInGroup<=similarItemsInGroup:
 		# Translators: Spoken to indicate the position of an item in a group of items (such as a list).
 		# {number} is replaced with the number of the item in the group.
 		# {total} is replaced with the total number of items in the group.
-		positionInfoList.append(_("{number} of {total}").format(number=indexInGroup, total=similarItemsInGroup))
-	if 'positionInfo_level' in propertyValues:
+		textDict['positionInfo_group']=_("{number} of {total}").format(number=indexInGroup, total=similarItemsInGroup)
+	if 'positionInfo_level' in propertyValues and 'positionInfo_level' in speechPropertiesOrder:
 		level=propertyValues.get('positionInfo_level',None)
 		role=propertyValues.get('role',None)
 		if level is not None:
@@ -1078,10 +1078,7 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 				oldTreeLevel=level
 			else:
 				# Translators: Speaks the item level in treeviews (example output: level 2).
-				positionInfoList.append(_('level %s')%propertyValues['positionInfo_level'])
-	if positionInfoList:
-		textDict['positionInfo']=CHUNK_SEPARATOR.join(info for info in positionInfoList if info)
-	speechPropertiesOrder=[property[1:] for property in config.conf['presentation']['objectProperties']['speechFocus'] if property.startswith("+")]
+				textDict['positionInfo_level']=_('level %s')%propertyValues['positionInfo_level']
 	for property in speechPropertiesOrder:
 		if property in textDict:
 			textList.append(textDict[property])
