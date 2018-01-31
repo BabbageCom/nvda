@@ -27,6 +27,7 @@ import queueHandler
 import speechDictHandler
 import characterProcessing
 import languageHandler
+from collections import OrderedDict
 
 speechMode_off=0
 speechMode_beeps=1
@@ -976,11 +977,12 @@ def speakTextInfo(info,useCache=True,formatConfig=None,unit=None,reason=controlT
 		else:
 			speak(speechSequence)
 
-def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues):
+def getSpeechDictForProperties(reason=controlTypes.REASON_QUERY,propertiesOrder=None,**propertyValues):
 	global oldTreeLevel, oldTableID, oldRowNumber, oldColumnNumber
 	textDict={}
 	textList=[]
-	speechPropertiesOrder=[property[1:] for property in config.conf['presentation']['objectProperties']['speechFocus'] if property.startswith("+")]
+	if propertiesOrder is None:
+		propertiesOrder=[property[1:] for property in config.conf['presentation']['objectProperties']['speechFocus'] if property.startswith("+")]
 	name=propertyValues.get('name')
 	if name:
 		textDict['name']=name
@@ -1074,15 +1076,16 @@ def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,**propertyValues
 			if role in (controlTypes.ROLE_TREEVIEWITEM,controlTypes.ROLE_LISTITEM) and level!=oldTreeLevel:
 				# Always speak level first when coming from another level, regardless of configuration
 				# Translators: Speaks the item level in treeviews (example output: level 2).
-				textList.append(_("level %s")%level)
+				#textList.append(_("level %s")%level)
 				oldTreeLevel=level
 			else:
 				# Translators: Speaks the item level in treeviews (example output: level 2).
 				textDict['positionInfo_level']=_('level %s')%propertyValues['positionInfo_level']
-	for property in speechPropertiesOrder:
-		if property in textDict:
-			textList.append(textDict[property])
-	return CHUNK_SEPARATOR.join([x for x in textList if x])
+	return OrderedDict(sorted(textDict.iteritems(), key=lambda item: propertiesOrder.index(item[0])))
+
+def getSpeechTextForProperties(reason=controlTypes.REASON_QUERY,propertiesOrder=None,**propertyValues):
+	textDict = getSpeechDictForProperties(reason=reason, propertiesOrder=propertiesOrder, **propertyValues)
+	return CHUNK_SEPARATOR.join(text for property, text in textDict.iteritems() if text)
 
 def getControlFieldSpeech(attrs,ancestorAttrs,fieldType,formatConfig=None,extraDetail=False,reason=None):
 	if attrs.get('isHidden'):
