@@ -810,6 +810,9 @@ class RichEdit30(RichEdit):
 class RichEdit50(RichEdit):
 	editAPIVersion=5
 
-class UnidentifiedEdit(Edit):
-	"""An edit control for which the edit API version is unknown."""
+class UnidentifiedEdit(RichEdit):
+	"""
+	An edit control for which the edit API version is unknown.
+	This class inherrits from L{RichEdit} to ensure L{ITextDocumentTextInfo} initialization failure is handled correctly.
+	"""
 	editAPIVersion=-1
