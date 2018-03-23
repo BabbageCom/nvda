@@ -32,6 +32,7 @@ from .. import NVDAObjectTextInfo
 from ..behaviors import EditableTextWithAutoSelectDetection
 import braille
 import watchdog
+import winVersion
 
 selOffsetsAtLastCaretEvent=None
 
@@ -435,7 +436,7 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		fontObj=None
 		paraFormatObj=None
 		if formatConfig["reportAlignment"]:
-			if not paraFormatObj: paraFormatObj=range.para
+			if not paraFormatObj: paraFormatObj=self._getBestComAttr(range,"para")
 			alignment=paraFormatObj.alignment
 			if alignment==comInterfaces.tom.tomAlignLeft:
 				formatField["text-align"]="left"
@@ -448,13 +449,13 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		if formatConfig["reportLineNumber"]:
 			formatField["line-number"]=range.getIndex(comInterfaces.tom.tomLine)
 		if formatConfig["reportFontName"]:
-			if not fontObj: fontObj=range.font
+			if not fontObj: fontObj=self._getBestComAttr(range,"font")
 			formatField["font-name"]=fontObj.name
 		if formatConfig["reportFontSize"]:
-			if not fontObj: fontObj=range.font
+			if not fontObj: fontObj=self._getBestComAttr(range,"font")
 			formatField["font-size"]="%spt"%fontObj.size
 		if formatConfig["reportFontAttributes"]:
-			if not fontObj: fontObj=range.font
+			if not fontObj: fontObj=self._getBestComAttr(range,"font")
 			formatField["bold"]=bool(fontObj.bold)
 			formatField["italic"]=bool(fontObj.italic)
 			formatField["underline"]=bool(fontObj.underline)
@@ -464,7 +465,7 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 			elif fontObj.subscript:
 				formatField["text-position"]="sub"
 		if formatConfig["reportLinks"]:
-			linkRange=range.Duplicate
+			linkRange=self._getBestComAttr(range,"Duplicate")
 			linkRange.Collapse(comInterfaces.tom.tomStart)
 			formatField["link"]=linkRange.Expand(comInterfaces.tom.tomLink)>0
 		if formatConfig["reportColor"]:
@@ -502,7 +503,7 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 	def _expandFormatRange(self,range,formatConfig):
 		startLimit=self._rangeObj.start
 		endLimit=self._rangeObj.end
-		chunkRange=range.duplicate
+		chunkRange=self._getBestComAttr(range,"duplicate")
 		if formatConfig["reportLineNumber"]:
 			chunkRange.expand(comInterfaces.tom.tomLine)
 		else:
@@ -542,7 +543,7 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		# Outlook Express bug: when expanding to the first embedded object on lines after the first, the range's start coordinates are the start coordinates of the previous character (on the line above)
 		# Therefore if we detect this, collapse the range and try getting left and top again
 		if left>=right:
-			r=embedRangeObj.duplicate
+			r=self._getBestComAttr(embedRangeObj,"duplicate")
 			r.collapse(1)
 			left,top=r.GetPoint(comInterfaces.tom.tomStart)
 		import displayModel
@@ -585,7 +586,8 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		start=rangeObj.start
 		for offset in xrange(len(bufText)):
 			if ord(bufText[offset])==0xfffc:
-				if embedRangeObj is None: embedRangeObj=rangeObj.duplicate
+				if embedRangeObj is None:
+					embedRangeObj=self._getBestComAttr(rangeObj,"duplicate")
 				embedRangeObj.setRange(start+offset,start+offset+1)
 				label=self._getEmbeddedObjectLabel(embedRangeObj)
 				if label:
@@ -598,34 +600,37 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 
 	def __init__(self,obj,position,_rangeObj=None):
 		super(ITextDocumentTextInfo,self).__init__(obj,position)
+		# ITextDocument2 objects have several methods and properties not available on ITextDocument1.
+		# The window property contains the window handle
+		self._usesITextDocument2=hasattr(obj.ITextDocumentObject,"window")
 		if _rangeObj:
-			self._rangeObj=_rangeObj.Duplicate
+			self._rangeObj=self._getBestComAttr(_rangeObj,"Duplicate")
 			return
 		if isinstance(position,textInfos.Point):
-			self._rangeObj=self.obj.ITextDocumentObject.rangeFromPoint(position.x,position.y)
+			self._rangeObj=self._getBestComAttr(self.obj.ITextDocumentObject,"rangeFromPoint")(position.x,position.y)
 		elif position==textInfos.POSITION_ALL:
-			self._rangeObj=self.obj.ITextDocumentObject.range(0,0)
+			self._rangeObj=self._getBestComAttr(self.obj.ITextDocumentObject,"range")(0,0)
 			self._rangeObj.expand(comInterfaces.tom.tomStory)
 		elif position==textInfos.POSITION_SELECTION:
-			self._rangeObj=self.obj.ITextSelectionObject.duplicate
+			self._rangeObj=self._getBestComAttr(self.obj.ITextSelectionObject,"duplicate")
 		elif position==textInfos.POSITION_CARET:
-			self._rangeObj=self.obj.ITextSelectionObject.duplicate
+			self._rangeObj=self._getBestComAttr(self.obj.ITextSelectionObject,"duplicate")
 			self._rangeObj.Collapse(True)
 		elif position==textInfos.POSITION_FIRST:
-			self._rangeObj=self.obj.ITextDocumentObject.range(0,0)
+			self._rangeObj=self._getBestComAttr(self.obj.ITextDocumentObject,"range")(0,0)
 		elif position==textInfos.POSITION_LAST:
-			self._rangeObj=self.obj.ITextDocumentObject.range(0,0)
+			self._rangeObj=self._getBestComAttr(self.obj.ITextDocumentObject,"range")(0,0)
 			self._rangeObj.move(comInterfaces.tom.tomStory,1)
 			self._rangeObj.moveStart(comInterfaces.tom.tomCharacter,-1)
 		elif isinstance(position,textInfos.offsets.Offsets):
-			self._rangeObj=self.obj.ITextDocumentObject.range(position.startOffset,position.endOffset)
+			self._rangeObj=self._getBestComAttr(self.obj.ITextDocumentObject,"range")(position.startOffset,position.endOffset)
 		else:
 			raise NotImplementedError("position: %s"%position)
 
 	def getTextWithFields(self,formatConfig=None):
 		if not formatConfig:
 			formatConfig=config.conf["documentFormatting"]
-		range=self._rangeObj.duplicate
+		range=self._getBestComAttr(self._rangeObj,"duplicate")
 		range.collapse(True)
 		if not formatConfig["detectFormatAfterCursor"]:
 			range.expand(comInterfaces.tom.tomCharacter)
@@ -726,6 +731,15 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		self.obj.ITextSelectionObject.start=self._rangeObj.start
 		self.obj.ITextSelectionObject.end=self._rangeObj.end
 
+	def _getBestComAttr(self, obj, attr):
+		"""Returns the right com object attribute for ITextDocument2 and derived objects.
+		For example, when obj is an ITextRange2 object and attr is "para",
+		this function returns the para2 attribute.
+		"""
+		if self._usesITextDocument2:
+			return getattr(obj, attr+"2")
+		return getattr(obj, attr)
+
 class Edit(EditableTextWithAutoSelectDetection, Window):
 
 	editAPIVersion=0
@@ -742,6 +756,10 @@ class Edit(EditableTextWithAutoSelectDetection, Window):
 			try:
 				ptr=ctypes.POINTER(comInterfaces.tom.ITextDocument)()
 				ctypes.windll.oleacc.AccessibleObjectFromWindow(self.windowHandle,-16,ctypes.byref(ptr._iid_),ctypes.byref(ptr))
+				if (winVersion.winVersion.major,winVersion.winVersion.minor)>=(6,2):
+					# #8102: On Windows 8 and above, many rich text controls support ITextDocument2.
+					# However, querying this interface returns interface not supported for some controls, while it is in fact supported.
+					ptr=comtypes.client.GetBestInterface(ptr)
 				self._ITextDocumentObject=ptr
 			except:
 				log.error("Error getting ITextDocument",exc_info=True)
@@ -751,7 +769,7 @@ class Edit(EditableTextWithAutoSelectDetection, Window):
 	def _get_ITextSelectionObject(self):
 		if not hasattr(self,'_ITextSelectionObject'):
 			try:
-				self._ITextSelectionObject=self.ITextDocumentObject.selection
+				self._ITextSelectionObject=getattr(self.ITextDocumentObject, "selection2", self.ITextDocumentObject.selection)
 			except:
 				self._ITextSelectionObject=None
 		return self._ITextSelectionObject
