@@ -409,6 +409,10 @@ ITextDocumentUnitsToNVDAUnits={
 	comInterfaces.tom.tomSentence:textInfos.UNIT_SENTENCE,
 	comInterfaces.tom.tomParagraph:textInfos.UNIT_PARAGRAPH,
 	comInterfaces.tom.tomStory:textInfos.UNIT_STORY,
+	comInterfaces.tom.tomTable:textInfos.UNIT_TABLE,
+	comInterfaces.tom.tomRow:textInfos.UNIT_ROW,
+	comInterfaces.tom.tomColumn:textInfos.UNIT_COLUMN,
+	comInterfaces.tom.tomCell:textInfos.UNIT_CELL,
 }
 
 NVDAUnitsToITextDocumentUnits={
@@ -419,6 +423,10 @@ NVDAUnitsToITextDocumentUnits={
 	textInfos.UNIT_PARAGRAPH:comInterfaces.tom.tomParagraph,
 	textInfos.UNIT_STORY:comInterfaces.tom.tomStory,
 	textInfos.UNIT_READINGCHUNK:comInterfaces.tom.tomSentence,
+	textInfos.UNIT_TABLE:comInterfaces.tom.tomTable,
+	textInfos.UNIT_ROW:comInterfaces.tom.tomRow,
+	textInfos.UNIT_COLUMN:comInterfaces.tom.tomColumn,
+	textInfos.UNIT_CELL:comInterfaces.tom.tomCell,
 }
 
 class ITextDocumentTextInfo(textInfos.TextInfo):
