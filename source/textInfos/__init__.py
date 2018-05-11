@@ -128,6 +128,8 @@ POSITION_LAST="last"
 POSITION_CARET="caret"
 POSITION_SELECTION="selection"
 POSITION_ALL="all"
+POSITION_OBJ="obj"
+POSITION_TEXTINFO="textInfo"
 
 class Point(object):
 	"""Represents a point on the screen.
@@ -229,7 +231,7 @@ class TextInfo(baseObject.AutoPropertyObject):
 	@ivar bookmark: A unique identifier that can be used to make another textInfo object at this position.
 	@type bookmark: L{Bookmark}
 	"""
- 
+
 	def __init__(self,obj,position):
 		"""Constructor.
 		Subclasses must extend this, calling the superclass method first.
@@ -238,9 +240,17 @@ class TextInfo(baseObject.AutoPropertyObject):
 		@param obj: The object containing the range of text being represented.
 		"""
 		super(TextInfo,self).__init__()
-		self._obj=weakref.ref(obj) if type(obj)!=weakref.ProxyType else obj
+		self._obj = weakref.ref(obj)
+		# Import late to avoid circular import
+		from NVDAObjects import NVDAObject
+		if isinstance(position, NVDAObject):
+			basePosition = POSITION_OBJ
+		elif isinstance(position, TextInfo):
+			basePosition = POSITION_TEXTINFO
+		else:
+			basePosition = position
 		#: The position with which this instance was constructed.
-		self.basePosition=position
+		self.basePosition = basePosition
 
 	def _get_obj(self):
 		"""The object containing the range of text being represented."""
