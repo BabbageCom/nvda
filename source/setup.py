@@ -9,12 +9,10 @@ import os
 import copy
 import gettext
 gettext.install("nvda", unicode=True)
-from distutils.core import setup
-import py2exe as py2exeModule
 from glob import glob
 import fnmatch
 from versionInfo import *
-from py2exe import build_exe
+from cx_Freeze import setup, build_exe, Executable
 import wx
 import imp
 
@@ -66,51 +64,33 @@ def getModuleExtention(thisModType):
 			return ext
 	raise ValueError("unknown mod type %s"%thisModType)
 
-# py2exe's idea of whether a dll is a system dll appears to be wrong sometimes, so monkey patch it.
-origIsSystemDLL = build_exe.isSystemDLL
-def isSystemDLL(pathname):
-	dll = os.path.basename(pathname).lower()
-	if dll in ("msvcp71.dll", "msvcp90.dll", "gdiplus.dll","mfc71.dll", "mfc90.dll"):
-		# These dlls don't exist on many systems, so make sure they're included.
-		return 0
-	elif dll.startswith("api-ms-win-") or dll in ("powrprof.dll", "mpr.dll", "crypt32.dll"):
-		# These are definitely system dlls available on all systems and must be excluded.
-		# Including them can cause serious problems when a binary build is run on a different version of Windows.
-		return 1
-	return origIsSystemDLL(pathname)
-build_exe.isSystemDLL = isSystemDLL
-
-class py2exe(build_exe.py2exe):
-	"""Overridden py2exe command to:
+class build_nvda_exe(build_exe):
+	"""Overridden cx_Freeze command to:
 		* Add a command line option --enable-uiAccess to enable uiAccess for the main executable
 		* Add extra info to the manifest
-		* Don't copy w9xpopen, as NVDA will never run on Win9x
 	"""
 
-	user_options = build_exe.py2exe.user_options + [
+	user_options = build_exe.user_options + [
 		("enable-uiAccess", "u", "enable uiAccess for the main executable"),
 	]
 
 	def initialize_options(self):
-		build_exe.py2exe.initialize_options(self)
+		build_exe.initialize_options(self)
 		self.enable_uiAccess = False
 
-	def copy_w9xpopen(self, modules, dlls):
-		pass
-
-	def run(self):
+	def _run(self):
 		dist = self.distribution
 		if self.enable_uiAccess:
 			# Add a target for nvda_uiAccess, using nvda_noUIAccess as a base.
-			target = copy.deepcopy(dist.windows[0])
-			target["dest_base"] = "nvda_uiAccess"
-			target["uac_info"] = (target["uac_info"][0], True)
-			dist.windows.insert(1, target)
+			target = Executable(**dist.executables[0].__dict__)
+			target.targetName = "nvda_uiAccess.exe"
+			#target["uac_info"] = (target["uac_info"][0], True)
+			dist.executables.insert(1, target)
 			# nvda_eoaProxy should have uiAccess.
-			target = dist.windows[3]
-			target["uac_info"] = (target["uac_info"][0], True)
+			target = Executable(**dist.executables[3].__dict__)
+			#target["uac_info"] = (target["uac_info"][0], True)
 
-		build_exe.py2exe.run(self)
+		build_exe.run(self)
 
 	def build_manifest(self, target, template):
 		mfest, rid = build_exe.py2exe.build_manifest(self, target, template)
@@ -150,7 +130,7 @@ compiledModExtention = getModuleExtention(imp.PY_COMPILED)
 sourceModExtention = getModuleExtention(imp.PY_SOURCE)
 setup(
 	name = name,
-	version=version,
+	version="%s.%s.%s.%s"%(version_year,version_major,version_minor,version_build),
 	description=description,
 	url=url,
 	classifiers=[
@@ -164,43 +144,42 @@ setup(
 'Programming Language :: Python',
 'Operating System :: Microsoft :: Windows',
 ],
-	cmdclass={"py2exe": py2exe},
-	windows=[
-		{
-			"script":"nvda.pyw",
-			"dest_base":"nvda_noUIAccess",
-			"uac_info": ("asInvoker", False),
-			"icon_resources":[(1,"images/nvda.ico")],
-			"version":"%s.%s.%s.%s"%(version_year,version_major,version_minor,version_build),
-			"description":"NVDA application",
-			"product_version":version,
-			"copyright":copyright,
-			"company_name":publisher,
-		},
+	cmdclass={"build_exe": build_nvda_exe},
+	executables=[
+		Executable(
+			script="nvda.pyw",
+			targetName="nvda_noUIAccess.exe",
+			#uac_info=("asInvoker", False),
+			icon="images/nvda.ico",
+			#version=version,
+			#description="NVDA application",
+			#product_version=version,
+			copyright=copyright,
+			#company_name=publisher,
+		),
 		# The nvda_uiAccess target will be added at runtime if required.
-		{
-			"script": "nvda_slave.pyw",
-			"icon_resources": [(1,"images/nvda.ico")],
-			"version":"%s.%s.%s.%s"%(version_year,version_major,version_minor,version_build),
-			"description": name,
-			"product_version": version,
-			"copyright": copyright,
-			"company_name": publisher,
-		},
-		{
-			"script": "nvda_eoaProxy.pyw",
+		Executable(
+			script="nvda_slave.pyw",
+			icon="images/nvda.ico",
+			#version="%s.%s.%s.%s"%(version_year,version_major,version_minor,version_build),
+			#description=name,
+			#product_version=version,
+			copyright=copyright,
+			#company_name=publisher,
+		),
+		Executable(
+			script="nvda_eoaProxy.pyw",
 			# uiAccess will be enabled at runtime if appropriate.
-			"uac_info": ("asInvoker", False),
-			"icon_resources": [(1,"images/nvda.ico")],
-			"version":"%s.%s.%s.%s"%(version_year,version_major,version_minor,version_build),
-			"description": "NVDA Ease of Access proxy",
-			"product_version": version,
-			"copyright": copyright,
-			"company_name": publisher,
-		},
+			#uac_info=("asInvoker", False),
+			icon="images/nvda.ico",
+			#version="%s.%s.%s.%s"%(version_year,version_major,version_minor,version_build),
+			#description="NVDA Ease of Access proxy",
+			#product_version=version,
+			copyright=copyright,
+			#company_name=publisher,
+		),
 	],
-	options = {"py2exe": {
-		"bundle_files": 3,
+	options = {"build_exe": {
 		"excludes": ["Tkinter",
 			"serial.loopback_connection", "serial.rfc2217", "serial.serialcli", "serial.serialjava", "serial.serialposix", "serial.socket_connection"],
 		"packages": ["NVDAObjects","virtualBuffers","appModules","comInterfaces","brailleDisplayDrivers","synthDrivers"],
@@ -208,6 +187,8 @@ setup(
 		# Also, the service executable used win32api, which some add-ons use for various purposes.
 		# Explicitly include them so we don't break some add-ons.
 		"includes": ["nvdaBuiltin", "bisect", "win32api"],
+		"zip_include_packages": "*",
+		"zip_exclude_packages": "",
 	}},
 	data_files=[
 		(".",glob("*.dll")+glob("*.manifest")+["builtin.dic"]),

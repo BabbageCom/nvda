@@ -231,7 +231,7 @@ def NVDADistGenerator(target, source, env, for_signature):
 	if release:
 		buildCmd.append("-O")
 	buildCmd.extend(("setup.py", "build", "--build-base", buildDir.abspath,
-		"py2exe", "--dist-dir", target[0].abspath))
+		"build_exe", "-b", target[0].abspath))
 	if release:
 		buildCmd.append("-O1")
 	action.append(buildCmd)
