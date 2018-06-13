@@ -1181,3 +1181,8 @@ This code is executed if a gain focus event is received by this object.
 			return True
 		else:
 			return False
+
+	def _get_isOffScreen(self):
+		"""Returns whether this object is known to be off screen."""
+		states = self.states
+		return controlTypes.STATE_INVISIBLE in states or controlTypes.STATE_OFFSCREEN in states

@@ -1051,7 +1051,8 @@ class UIA(Window):
 		UIAHandler.UIA_IsKeyboardFocusablePropertyId,
 		UIAHandler.UIA_IsPasswordPropertyId,
 		UIAHandler.UIA_IsSelectionItemPatternAvailablePropertyId,
-		UIAHandler.UIA_IsEnabledPropertyId
+		UIAHandler.UIA_IsEnabledPropertyId,
+		UIAHandler.UIA_IsOffscreenPropertyId,
 	}  if UIAHandler.isUIAAvailable else set()
 
 	def _get_states(self):
@@ -1076,6 +1077,12 @@ class UIA(Window):
 				states.add(controlTypes.STATE_CHECKED if role==controlTypes.ROLE_RADIOBUTTON else controlTypes.STATE_SELECTED)
 		if not self._getUIACacheablePropertyValue(UIAHandler.UIA_IsEnabledPropertyId,True):
 			states.add(controlTypes.STATE_UNAVAILABLE)
+		try:
+			isOffScreen = self._getUIACacheablePropertyValue(UIAHandler.UIA_IsOffscreenPropertyId)
+		except COMError:
+			isOffScreen = False
+		if isOffScreen:
+			states.add(controlTypes.STATE_OFFSCREEN)
 		try:
 			isDataValid=self._getUIACacheablePropertyValue(UIAHandler.UIA_IsDataValidForFormPropertyId,True)
 		except COMError:
@@ -1338,6 +1345,12 @@ class UIA(Window):
 	def _get_hasFocus(self):
 		try:
 			return self._getUIACacheablePropertyValue(UIAHandler.UIA_HasKeyboardFocusPropertyId)
+		except COMError:
+			return False
+
+	def _get_isOffScreen(self):
+		try:
+			return self._getUIACacheablePropertyValue(UIAHandler.UIA_IsOffscreenPropertyId)
 		except COMError:
 			return False
 
