@@ -54,6 +54,10 @@ WDAG_PROCESS_NAME=u'hvsirdpclient'
 goodUIAWindowClassNames=[
 	# A WDAG (Windows Defender Application Guard) Window is always native UIA, even if it doesn't report as such.
 	'RAIL_WINDOW',
+	# The SysListView32 implementation of UIA is prefered over the IAccessible implementation,
+	# as it automates things for us we have to do manually otherwise,
+	# such as getting location info from list sub items.
+	"SysListView32",
 ]
 
 badUIAWindowClassNames=[

@@ -26,8 +26,8 @@ from NVDAObjects.IAccessible import IAccessible
 from NVDAObjects.window import Window
 from NVDAObjects.IAccessible.winword import WordDocument, WordDocumentTreeInterceptor, BrowseModeWordDocumentTextInfo, WordDocumentTextInfo
 from NVDAObjects.IAccessible.MSHTML import MSHTML
-from NVDAObjects.behaviors import RowWithFakeNavigation, Dialog
-from NVDAObjects.UIA import UIA
+from NVDAObjects.behaviors import Dialog
+from NVDAObjects.UIA import UIA, GridRow
 
 #: The number of seconds in a day, used to make all day appointments and selections less verbose.
 #: Type: float
@@ -415,10 +415,10 @@ class CalendarView(IAccessible):
 		else:
 			self.event_valueChange()
 
-class UIAGridRow(RowWithFakeNavigation,UIA):
+class UIAGridRow(GridRow):
 
-	rowHeaderText=None
-	columnHeaderText=None
+	def _get_childFilter(self):
+		return UIAHandler.handler.clientObject.createPropertyCondition(UIAHandler.UIA_ControlTypePropertyId,UIAHandler.UIA_TextControlTypeId)
 
 	def _get_name(self):
 		textList=[]
@@ -464,38 +464,7 @@ class UIAGridRow(RowWithFakeNavigation,UIA):
 			if messageClass=="IPM.Schedule.Meeting.Request":
 				# Translators: the email is a meeting request
 				textList.append(_("meeting request"))
-		childrenCacheRequest=UIAHandler.handler.baseCacheRequest.clone()
-		childrenCacheRequest.addProperty(UIAHandler.UIA_NamePropertyId)
-		childrenCacheRequest.addProperty(UIAHandler.UIA_TableItemColumnHeaderItemsPropertyId)
-		childrenCacheRequest.TreeScope=UIAHandler.TreeScope_Children
-		childrenCacheRequest.treeFilter=UIAHandler.handler.clientObject.createPropertyCondition(UIAHandler.UIA_ControlTypePropertyId,UIAHandler.UIA_TextControlTypeId)
-		cachedChildren=self.UIAElement.buildUpdatedCache(childrenCacheRequest).getCachedChildren()
-		if not cachedChildren:
-			# There are no children
-			# This is unexpected here.
-			log.debugWarning("Unable to get relevant children for UIAGridRow", stack_info=True)
-			return super(UIAGridRow, self).name
-		for index in xrange(cachedChildren.length):
-			e=cachedChildren.getElement(index)
-			name=e.cachedName
-			columnHeaderTextList=[]
-			if name and config.conf['documentFormatting']['reportTableHeaders']:
-				columnHeaderItems=e.getCachedPropertyValueEx(UIAHandler.UIA_TableItemColumnHeaderItemsPropertyId,True)
-			else:
-				columnHeaderItems=None
-			if columnHeaderItems:
-				columnHeaderItems=columnHeaderItems.QueryInterface(UIAHandler.IUIAutomationElementArray)
-				for index in xrange(columnHeaderItems.length):
-					columnHeaderItem=columnHeaderItems.getElement(index)
-					columnHeaderTextList.append(columnHeaderItem.currentName)
-			columnHeaderText=" ".join(columnHeaderTextList)
-			if columnHeaderText:
-				text=u"{header} {name}".format(header=columnHeaderText,name=name)
-			else:
-				text=name
-			if text:
-				text+=u","
-				textList.append(text)
+		textList.append(super(UIAGridRow, self).name)
 		return " ".join(textList)
 
 	value=None

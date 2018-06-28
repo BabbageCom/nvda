@@ -28,7 +28,7 @@ from logHandler import log
 from UIAUtils import *
 from NVDAObjects.window import Window
 from NVDAObjects import NVDAObjectTextInfo, InvalidNVDAObject
-from NVDAObjects.behaviors import ProgressBar, EditableTextWithoutAutoSelectDetection, Dialog, Notification, EditableTextWithSuggestions
+from NVDAObjects.behaviors import ProgressBar, EditableTextWithoutAutoSelectDetection, Dialog, Notification, EditableTextWithSuggestions, RowWithFakeNavigation
 import braille
 import time
 import ui
@@ -787,7 +787,16 @@ class UIA(Window):
 			except COMError:
 				pass
 		elif UIAControlType==UIAHandler.UIA_ListItemControlTypeId:
-			clsList.append(ListItem)
+			if self.windowClassName =="SysListView32":
+				from .sysListView32 import ListItem as SysListView32ListItem
+				clsList.append(SysListView32ListItem)
+				if self.childCount>1:
+					clsList.append(GridRow)
+			else:
+				clsList.append(ListItem)
+		elif UIAControlType==UIAHandler.UIA_ListControlTypeId and self.windowClassName =="SysListView32":
+			from .sysListView32 import List
+			clsList.append(List)
 		# #5942: In Windows 10 build 14332 and later, Microsoft rewrote various dialog code including that of User Account Control.
 		if self.UIAIsWindowElement and UIAClassName in ("#32770","NUIDialog", "Credential Dialog Xaml Host"):
 			clsList.append(Dialog)
@@ -1599,3 +1608,44 @@ class SuggestionListItem(UIA):
 			self.reportFocus()
 			# Display results as flash messages.
 			braille.handler.message(braille.getBrailleTextForProperties(name=self.name, role=self.role, positionInfo=self.positionInfo))
+
+class GridRow(RowWithFakeNavigation,UIA):
+	ignoreFirstColumnHeader = False
+	childFilter = UIAHandler.handler.clientObject.ContentViewCondition
+
+	def _get_name(self):
+		textList=[]
+		childrenCacheRequest=UIAHandler.handler.baseCacheRequest.clone()
+		childrenCacheRequest.addProperty(UIAHandler.UIA_NamePropertyId)
+		childrenCacheRequest.addProperty(UIAHandler.UIA_TableItemColumnHeaderItemsPropertyId)
+		childrenCacheRequest.TreeScope=UIAHandler.TreeScope_Children
+		childrenCacheRequest.treeFilter=self.childFilter
+		cachedChildren=self.UIAElement.buildUpdatedCache(childrenCacheRequest).getCachedChildren()
+		if not cachedChildren:
+			# There are no children
+			# This is unexpected here.
+			log.debugWarning("Unable to get relevant children for GridRow", stack_info=True)
+			return super(GridRow, self).name
+		for index in xrange(cachedChildren.length):
+			e=cachedChildren.getElement(index)
+			name=e.cachedName
+			columnHeaderTextList=[]
+			if name and config.conf['documentFormatting']['reportTableHeaders'] and not (index==0 and self.ignoreFirstColumnHeader):
+				columnHeaderItems=e.getCachedPropertyValueEx(UIAHandler.UIA_TableItemColumnHeaderItemsPropertyId,True)
+			else:
+				columnHeaderItems=None
+			if columnHeaderItems:
+				columnHeaderItems=columnHeaderItems.QueryInterface(UIAHandler.IUIAutomationElementArray)
+				for index in xrange(columnHeaderItems.length):
+					columnHeaderItem=columnHeaderItems.getElement(index)
+					columnHeaderTextList.append(columnHeaderItem.currentName)
+			columnHeaderText=" ".join(columnHeaderTextList)
+			if columnHeaderText:
+				text=u"{header} {name}".format(header=columnHeaderText,name=name)
+			else:
+				text=name
+			if text:
+				text+=u","
+				textList.append(text)
+		return " ".join(textList)
+
