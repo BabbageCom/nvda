@@ -7,6 +7,9 @@
 import UIAHandler
 from . import UIA, GridRow
 from . import ListItem as UIAListItem
+import watchdog
+from NVDAObjects.IAccessible.sysListView32 import LVM_GETITEMCOUNT
+
 
 class List(UIA):
 
@@ -31,3 +34,11 @@ class ListItem(UIAListItem):
 		if isinstance(self, GridRow):
 			return self.firstChild.rowNumber
 		return super(ListItem, self).rowNumber
+
+	def _get_positionInfo(self):
+		automationID = self.UIAElement.cachedAutomationID
+		if not automationID.startswith("ListViewItem"):
+			return super(ListItem, self).positionInfo
+		index=int(automationID.split("-")[1])+1
+		totalCount=watchdog.cancellableSendMessage(self.windowHandle,LVM_GETITEMCOUNT,0,0)
+		return dict(indexInGroup=index,similarItemsInGroup=totalCount) 
