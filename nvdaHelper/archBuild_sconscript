@@ -14,6 +14,7 @@
 
 import os
 import shutil
+import distutils.sysconfig
 
 Import(
 	'env',
@@ -104,7 +105,11 @@ if 'analyze' in debug:
 
 env.Append(CXXFLAGS=['/EHsc'])
 
-env.Append(CPPPATH=['#/include','#/miscDeps/include',Dir('.').abspath])
+env.Append(CPPPATH=[
+	'#/include',
+	'#/miscDeps/include',
+	distutils.sysconfig.get_python_inc(),
+	Dir('.').abspath])
 env.Append(
 	LINKFLAGS=[
 		'/incremental:no',
