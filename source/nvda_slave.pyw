@@ -120,7 +120,7 @@ def main():
 			except EOFError:
 				pass
 		else:
-			raise ValueError("No such action")
+			raise ValueError("No such action: %s" % action)
 
 	except installer.RetriableFailure:
 		logHandler.log.error("Task failed, try again",exc_info=True)

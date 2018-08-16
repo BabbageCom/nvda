@@ -211,7 +211,9 @@ uninstallerRegInfo={
 	"URLInfoAbout":versionInfo.url,
 }
 
-def registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,startOnLogonScreen,configInLocalAppData=False):
+def registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,
+	startOnLogonScreen,configInLocalAppData=False, useService=False
+):
 	import _winreg
 	with _winreg.CreateKeyEx(_winreg.HKEY_LOCAL_MACHINE,"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\NVDA",0,_winreg.KEY_WRITE) as k:
 		for name,value in uninstallerRegInfo.iteritems(): 
@@ -222,7 +224,14 @@ def registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,
 		_winreg.SetValueEx(k,"startMenuFolder",None,_winreg.REG_SZ,startMenuFolder)
 		if configInLocalAppData:
 			_winreg.SetValueEx(k,config.CONFIG_IN_LOCAL_APPDATA_SUBKEY,None,_winreg.REG_DWORD,int(configInLocalAppData))
-	easeOfAccess.register(installDir)
+	if useService or globalVars.appArgs.secureDesktopSupport == "service":
+		import nvda_service
+		nvda_service.installService(installDir)
+		nvda_service.startService()
+	elif globalVars.appArgs.secureDesktopSupport == "easeOfAccess":
+		easeOfAccess.register(installDir)
+	elif globalVars.appArgs.secureDesktopSupport == "off":
+		pass # Do nothing
 	if startOnLogonScreen is not None:
 		config._setStartOnLogonScreen(startOnLogonScreen)
 	NVDAExe=os.path.join(installDir,u"nvda.exe")

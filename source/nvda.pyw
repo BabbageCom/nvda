@@ -101,6 +101,10 @@ installGroup.add_argument('--install-silent',action="store_true",dest='installSi
 installGroup.add_argument('--create-portable',action="store_true",dest='createPortable',default=False,help="Creates a portable copy of NVDA (starting the new copy after installation)")
 installGroup.add_argument('--create-portable-silent',action="store_true",dest='createPortableSilent',default=False,help="Creates a portable copy of NVDA silently (does not start the new copy after installation).")
 parser.add_argument('--portable-path',dest='portablePath',default=None,type=decodeMbcs,help="The path where a portable copy will be created")
+parser.add_argument('--secure-desktop-support',
+	dest='secureDesktopSupport',type=decodeMbcs,
+	default='easeOfAccess',choices=['easeOfAccess','service','off'],
+	help="Whether and how NVDA runs on secure desktops")
 parser.add_argument('--launcher',action="store_true",dest='launcher',default=False,help="Started from the launcher")
 # This option currently doesn't actually do anything.
 # It is passed by Ease of Access so that if someone downgrades without uninstalling (despite our discouragement),
