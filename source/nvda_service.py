@@ -1,6 +1,6 @@
 #nvda_service.py
 #A part of NonVisual Desktop Access (NVDA)
-#Copyright (C) 2009-2011 NV Access Inc
+#Copyright (C) 2009-2018 NV Access limited, Babbage B.V.
 #This file is covered by the GNU General Public License.
 #See the file COPYING for more details.
 
@@ -13,7 +13,10 @@ import sys
 import os
 import time
 import subprocess
-import _winreg
+try:
+	import winreg
+except IMportError:
+	import _winreg as winreg
 import winVersion
 
 CREATE_UNICODE_ENVIRONMENT=1024
@@ -186,21 +189,21 @@ def isSessionLoggedOn(session):
 
 def execBg(func):
 	t = threading.Thread(target=func)
-	t.setDaemon(True)
+	t.daemon = True
 	t.start()
 
 def shouldStartOnLogonScreen():
 	try:
-		k = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, ur"SOFTWARE\NVDA")
-		return bool(_winreg.QueryValueEx(k, u"startOnLogonScreen")[0])
+		k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, ur"SOFTWARE\NVDA")
+		return bool(winreg.QueryValueEx(k, u"startOnLogonScreen")[0])
 	except WindowsError:
 		return False
 
 def initDebug():
 	global isDebug
 	try:
-		k = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, ur"SOFTWARE\NVDA")
-		isDebug = bool(_winreg.QueryValueEx(k, u"serviceDebug")[0])
+		k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, ur"SOFTWARE\NVDA")
+		isDebug = bool(winreg.QueryValueEx(k, u"serviceDebug")[0])
 	except WindowsError:
 		isDebug = False
 
@@ -220,11 +223,6 @@ class NVDAService(win32serviceutil.ServiceFramework):
 		self.desktopSwitchSupervisorStarted = False
 		self.isSessionLoggedOn = isSessionLoggedOn(session)
 		debug("session logged on: %r" % self.isSessionLoggedOn)
-
-		if self.isWindowsXP and session != 0 and not self.isSessionLoggedOn:
-			# In Windows XP, sessions other than 0 are broken before logon, so we can't do anything more here.
-			debug("Windows XP, returning before action")
-			return
 
 		if self.isSessionLoggedOn:
 			# The session is logged on, so treat this as a normal desktop switch.
@@ -283,17 +281,14 @@ class NVDAService(win32serviceutil.ServiceFramework):
 		elif event == WTS_SESSION_LOGOFF:
 			debug("logoff %d" % session)
 			self.isSessionLoggedOn = False
-			if session == 0 and shouldStartOnLogonScreen():
-				# In XP, a logoff in session 0 does not cause a new session to be created.
-				# Instead, we're probably heading back to the logon screen.
-				execBg(self.startLauncher)
 		elif event == WTS_SESSION_LOCK:
-			debug("lock %d" % session)
 			# If the user was running NVDA, the desktop switch will have started NVDA on the secure desktop.
-			# This only needs to cover the case where the user was not running NVDA and the session is locked.
-			# In this case, we should treat the lock screen like the logon screen.
-			if session == self.session and shouldStartOnLogonScreen():
-				self.startLauncher()
+			# Originally, NVDA covered the case where the user was not running NVDA and the session was locked,
+			# in which case we threated the lock screen like the logon screen.
+			# This behavior is not equivalent to EOA's behavior, in which case NVDA does not activate on the lock screen of a session,
+			# where NVDA is not running.
+			# Therefore, we no longer cover this case.
+			debug("lock %d" % session)
 
 	def startLauncher(self):
 		with self.launcherLock:
@@ -312,7 +307,6 @@ class NVDAService(win32serviceutil.ServiceFramework):
 	def SvcDoRun(self):
 		initDebug()
 		debug("service starting")
-		self.isWindowsXP = winVersion.winVersion[0:2] == (5, 1)
 		self.exitEvent = threading.Event()
 		self.initSession(windll.kernel32.WTSGetActiveConsoleSessionId())
 		self.exitEvent.wait()
