@@ -103,7 +103,7 @@ installGroup.add_argument('--create-portable-silent',action="store_true",dest='c
 parser.add_argument('--portable-path',dest='portablePath',default=None,type=decodeMbcs,help="The path where a portable copy will be created")
 parser.add_argument('--secure-desktop-support',
 	dest='secureDesktopSupport',type=decodeMbcs,
-	default='easeOfAccess',choices=['easeOfAccess','service','off'],
+	default='undetermined',choices=['easeOfAccess','service','off'],
 	help="Whether and how NVDA runs on secure desktops")
 parser.add_argument('--launcher',action="store_true",dest='launcher',default=False,help="Started from the launcher")
 # This option currently doesn't actually do anything.

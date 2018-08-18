@@ -224,15 +224,15 @@ def registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,
 		_winreg.SetValueEx(k,"startMenuFolder",None,_winreg.REG_SZ,startMenuFolder)
 		if configInLocalAppData:
 			_winreg.SetValueEx(k,config.CONFIG_IN_LOCAL_APPDATA_SUBKEY,None,_winreg.REG_DWORD,int(configInLocalAppData))
-	if useService or globalVars.appArgs.secureDesktopSupport == "service":
+	if globalVars.appArgs.secureDesktopSupport == "undetermined":
+		globalVars.appArgs.secureDesktopSupport = "service" if useService else "easeOfAccess"
+	if globalVars.appArgs.secureDesktopSupport == "easeOfAccess":
+		easeOfAccess.register(installDir)
+	elif globalVars.appArgs.secureDesktopSupport == "service":
 		import nvda_service
 		nvda_service.installService(installDir)
 		nvda_service.startService()
-	elif globalVars.appArgs.secureDesktopSupport == "easeOfAccess":
-		easeOfAccess.register(installDir)
-	elif globalVars.appArgs.secureDesktopSupport == "off":
-		pass # Do nothing
-	if startOnLogonScreen is not None:
+	if globalVars.appArgs.secureDesktopSupport != "off" and startOnLogonScreen is not None:
 		config._setStartOnLogonScreen(startOnLogonScreen)
 	NVDAExe=os.path.join(installDir,u"nvda.exe")
 	slaveExe=os.path.join(installDir,u"nvda_slave.exe")
@@ -409,6 +409,9 @@ def install(shouldCreateDesktopShortcut=True,shouldRunAtLogon=True):
 		configInLocalAppData = bool(_winreg.QueryValueEx(k, config.CONFIG_IN_LOCAL_APPDATA_SUBKEY)[0])
 	except WindowsError:
 		configInLocalAppData = False
+	import nvda_service
+	# When someone explicitly installed the server earlier, respect that decision.
+	useService = nvda_service.isServiceInstalled()
 	unregisterInstallation(keepDesktopShortcut=shouldCreateDesktopShortcut)
 	installDir=defaultInstallPath
 	startMenuFolder=defaultStartMenuFolder
@@ -433,7 +436,7 @@ def install(shouldCreateDesktopShortcut=True,shouldRunAtLogon=True):
 			break
 	else:
 		raise RuntimeError("No available executable to use as nvda.exe")
-	registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,shouldRunAtLogon,configInLocalAppData)
+	registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,shouldRunAtLogon,configInLocalAppData,useService)
 	removeOldLibFiles(installDir,rebootOK=True)
 	COMRegistrationFixes.fixCOMRegistrations()
 
