@@ -18,6 +18,7 @@ try:
 except IMportError:
 	import _winreg as winreg
 import winVersion
+from pywintypes import error
 
 CREATE_UNICODE_ENVIRONMENT=1024
 INFINITE = 0xffffffff
@@ -325,6 +326,14 @@ def installService(nvdaDir):
 
 def removeService():
 	win32serviceutil.RemoveService(NVDAService._svc_name_)
+
+def isServiceInstalled():
+	try:
+		# QueryServiceStatus raises an error if the service does not exist.
+		win32serviceutil.QueryServiceStatus(NVDAService._svc_name_)
+		return True
+	except error:
+		return False
 
 def startService():
 	win32serviceutil.StartService(NVDAService._svc_name_)

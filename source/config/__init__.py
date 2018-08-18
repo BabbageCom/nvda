@@ -188,7 +188,11 @@ def setStartAfterLogon(enable):
 
 SERVICE_FILENAME = u"nvda_service.exe"
 
-def isServiceInstalled():
+def isServiceInstalledForCurrentCopy():
+	"""Returns whether the NVDA service is installed for the current copy.
+	This differs from L{nvda_service.isServiceInstalled} in that that function checks,
+	whether there is a service installed with the NVDA service name.
+	"""
 	if not os.path.isfile(SERVICE_FILENAME):
 		return False
 	try:
@@ -199,7 +203,7 @@ def isServiceInstalled():
 		return False
 
 def canStartOnSecureScreens():
-	return isInstalledCopy() and (easeOfAccess.isRegistered() or isServiceInstalled())
+	return isInstalledCopy() and (easeOfAccess.isRegistered() or isServiceInstalledForCurrentCopy())
 
 def execElevated(path, params=None, wait=False,handleAlreadyElevated=False):
 	import subprocess
