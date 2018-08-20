@@ -237,13 +237,15 @@ SLAVE_FILENAME = u"nvda_slave.exe"
 NVDA_REGKEY = ur"SOFTWARE\NVDA"
 
 def getStartOnLogonScreen():
-	if easeOfAccess.isRegistered() and easeOfAccess.willAutoStart(_winreg.HKEY_LOCAL_MACHINE):
-		return True
-	try:
-		k = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, NVDA_REGKEY)
-		return bool(_winreg.QueryValueEx(k, u"startOnLogonScreen")[0])
-	except WindowsError:
-		return False
+	if easeOfAccess.isRegistered():
+		return easeOfAccess.willAutoStart(_winreg.HKEY_LOCAL_MACHINE)
+	if isServiceInstalledForCurrentCopy():
+		try:
+			k = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, NVDA_REGKEY)
+			return bool(_winreg.QueryValueEx(k, u"startOnLogonScreen")[0])
+		except WindowsError:
+			return False
+	return False
 
 def _setStartOnLogonScreen(enable):
 	if easeOfAccess.isRegistered():
