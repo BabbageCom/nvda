@@ -23,6 +23,13 @@ import addonHandler
 import easeOfAccess
 import COMRegistrationFixes
 
+SECURE_DESKTOP_UNDETERMINED = "undetermined"
+SECURE_DESKTOP_EOA = "easeOfAccess"
+SECURE_DESKTOP_SERVICE = "service"
+SECURE_DESKTOP_OFF = "off"
+
+SECURE_DESKTOP_IMPLEMENTATIONS = (SECURE_DESKTOP_UNDETERMINED, SECURE_DESKTOP_EOA, SECURE_DESKTOP_SERVICE, SECURE_DESKTOP_OFF)
+
 _wsh=None
 def _getWSH():
 	global _wsh
@@ -212,7 +219,7 @@ uninstallerRegInfo={
 }
 
 def registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,
-	startOnLogonScreen,configInLocalAppData=False, useService=False
+	startOnLogonScreen,configInLocalAppData, secureDesktopSupport
 ):
 	import _winreg
 	with _winreg.CreateKeyEx(_winreg.HKEY_LOCAL_MACHINE,"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\NVDA",0,_winreg.KEY_WRITE) as k:
@@ -224,15 +231,13 @@ def registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,
 		_winreg.SetValueEx(k,"startMenuFolder",None,_winreg.REG_SZ,startMenuFolder)
 		if configInLocalAppData:
 			_winreg.SetValueEx(k,config.CONFIG_IN_LOCAL_APPDATA_SUBKEY,None,_winreg.REG_DWORD,int(configInLocalAppData))
-	if globalVars.appArgs.secureDesktopSupport == "undetermined":
-		globalVars.appArgs.secureDesktopSupport = "service" if useService else "easeOfAccess"
-	if globalVars.appArgs.secureDesktopSupport == "easeOfAccess":
+	if secureDesktopSupport == SECURE_DESKTOP_EOA:
 		easeOfAccess.register(installDir)
-	elif globalVars.appArgs.secureDesktopSupport == "service":
+	elif secureDesktopSupport == SECURE_DESKTOP_SVC:
 		import nvda_service
 		nvda_service.installService(installDir)
 		nvda_service.startService()
-	if globalVars.appArgs.secureDesktopSupport != "off" and startOnLogonScreen is not None:
+	if secureDesktopSupport != SECURE_DESKTOP_OFF and startOnLogonScreen is not None:
 		config._setStartOnLogonScreen(startOnLogonScreen)
 	NVDAExe=os.path.join(installDir,u"nvda.exe")
 	slaveExe=os.path.join(installDir,u"nvda_slave.exe")
@@ -402,16 +407,24 @@ def tryCopyFile(sourceFilePath,destFilePath):
 			errorCode=GetLastError()
 			raise OSError("Unable to copy file %s to %s, error %d"%(sourceFilePath,destFilePath,errorCode))
 
-def install(shouldCreateDesktopShortcut=True,shouldRunAtLogon=True):
+def install(shouldCreateDesktopShortcut=True,shouldRunAtLogon=True, secureDesktopSupport=SECURE_DESKTOP_UNDETERMINED):
 	prevInstallPath=getInstallPath(noDefault=True)
 	try:
 		k = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, config.NVDA_REGKEY)
 		configInLocalAppData = bool(_winreg.QueryValueEx(k, config.CONFIG_IN_LOCAL_APPDATA_SUBKEY)[0])
 	except WindowsError:
 		configInLocalAppData = False
-	import nvda_service
-	# When someone explicitly installed the server earlier, respect that decision.
-	useService = nvda_service.isServiceInstalled()
+	if secureDesktopSupport == SECURE_DESKTOP_UNDETERMINED:
+		# secureDesktopSupport is not explicitly set, respect earlier decisions.
+		import nvda_service
+		# When someone explicitly installed the server earlier, respect that decision.
+		if easeOfAccess.isRegistered():
+			secureDesktopSupport = SECURE_DESKTOP_EOA
+		elif nvda_service.isServiceInstalled():
+			secureDesktopSupport = SECURE_DESKTOP_SVC
+		else:
+			log.warning("Secure desktop support disabled in previous installation, maintaining this preference.")
+			secureDesktopSupport = SECURE_DESKTOP_OFF
 	unregisterInstallation(keepDesktopShortcut=shouldCreateDesktopShortcut)
 	installDir=defaultInstallPath
 	startMenuFolder=defaultStartMenuFolder
@@ -436,7 +449,7 @@ def install(shouldCreateDesktopShortcut=True,shouldRunAtLogon=True):
 			break
 	else:
 		raise RuntimeError("No available executable to use as nvda.exe")
-	registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,shouldRunAtLogon,configInLocalAppData,useService)
+	registerInstallation(installDir,startMenuFolder,shouldCreateDesktopShortcut,shouldRunAtLogon,configInLocalAppData,secureDesktopSupport)
 	removeOldLibFiles(installDir,rebootOK=True)
 	COMRegistrationFixes.fixCOMRegistrations()
 

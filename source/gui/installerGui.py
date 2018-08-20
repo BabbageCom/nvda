@@ -18,7 +18,9 @@ import gui
 from gui import guiHelper
 import tones
 
-def doInstall(createDesktopShortcut,startOnLogon,copyPortableConfig,isUpdate,silent=False,startAfterInstall=True):
+def doInstall(createDesktopShortcut,startOnLogon,copyPortableConfig,isUpdate,
+	silent=False,startAfterInstall=True,secureDesktopSupport=installer.SECURE_DESKTOP_UNDETERMINED
+):
 	progressDialog = gui.IndeterminateProgressDialog(gui.mainFrame,
 		# Translators: The title of the dialog presented while NVDA is being updated.
 		_("Updating NVDA") if isUpdate
@@ -29,7 +31,17 @@ def doInstall(createDesktopShortcut,startOnLogon,copyPortableConfig,isUpdate,sil
 		# Translators: The message displayed while NVDA is being installed.
 		else _("Please wait while NVDA is being installed"))
 	try:
-		res=config.execElevated(config.SLAVE_FILENAME,["install",str(int(createDesktopShortcut)),str(int(startOnLogon))],wait=True,handleAlreadyElevated=True)
+		res=config.execElevated(
+			config.SLAVE_FILENAME,
+			[
+				"install",
+				str(int(createDesktopShortcut)),
+				str(int(startOnLogon)),
+				str(installer.SECURE_DESKTOP_IMPLEMENTATIONS.index(secureDesktopSupport))
+			],
+			wait=True,
+			handleAlreadyElevated=True
+		)
 		if res==2: raise installer.RetriableFailure
 		if copyPortableConfig:
 			installedUserConfigPath=config.getInstalledUserConfigPath()

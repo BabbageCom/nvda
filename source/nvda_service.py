@@ -15,7 +15,7 @@ import time
 import subprocess
 try:
 	import winreg
-except IMportError:
+except ImportError:
 	import _winreg as winreg
 import winVersion
 from pywintypes import error
