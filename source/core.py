@@ -433,7 +433,9 @@ This initializes all modules such as audio, IAccessible, keyboard, mouse, and GU
 	globalPluginHandler.initialize()
 	if globalVars.appArgs.install or globalVars.appArgs.installSilent:
 		import gui.installerGui
-		wx.CallAfter(gui.installerGui.doSilentInstall,startAfterInstall=not globalVars.appArgs.installSilent)
+		wx.CallAfter(gui.installerGui.doSilentInstall,
+			startAfterInstall=not globalVars.appArgs.installSilent,
+			secureDesktopSupport=globalVars.appArgs.secureDesktopSupport)
 	elif globalVars.appArgs.portablePath and (globalVars.appArgs.createPortable or globalVars.appArgs.createPortableSilent):
 		import gui.installerGui
 		wx.CallAfter(gui.installerGui.doCreatePortable,portableDirectory=globalVars.appArgs.portablePath,

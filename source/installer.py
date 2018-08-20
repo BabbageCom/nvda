@@ -423,7 +423,7 @@ def install(shouldCreateDesktopShortcut=True,shouldRunAtLogon=True, secureDeskto
 		elif nvda_service.isServiceInstalled():
 			secureDesktopSupport = SECURE_DESKTOP_SVC
 		else:
-			log.warning("Secure desktop support disabled in previous installation, maintaining this preference.")
+			log.warning("Secure desktop support disabled in previous installation, keeping this preference.")
 			secureDesktopSupport = SECURE_DESKTOP_OFF
 	unregisterInstallation(keepDesktopShortcut=shouldCreateDesktopShortcut)
 	installDir=defaultInstallPath

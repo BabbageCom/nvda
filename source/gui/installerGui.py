@@ -87,9 +87,17 @@ def doInstall(createDesktopShortcut,startOnLogon,copyPortableConfig,isUpdate,
 	else:
 		wx.GetApp().ExitMainLoop()
 
-def doSilentInstall(startAfterInstall=True):
+def doSilentInstall(startAfterInstall=True, secureDesktopSupport=installer.SECURE_DESKTOP_UNDETERMINED):
 	prevInstall=installer.comparePreviousInstall() is not None
-	doInstall(installer.isDesktopShortcutInstalled() if prevInstall else True,config.getStartOnLogonScreen() if prevInstall else True,False,prevInstall,silent=True,startAfterInstall=startAfterInstall)
+	doInstall(
+		installer.isDesktopShortcutInstalled() if prevInstall else True,
+		config.getStartOnLogonScreen() if prevInstall else True,
+		False,
+		prevInstall,
+		silent=True,
+		startAfterInstall=startAfterInstall,
+		secureDesktopSupport=secureDesktopSupport
+	)
 
 class InstallerDialog(wx.Dialog):
 
