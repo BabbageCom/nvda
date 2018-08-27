@@ -10,9 +10,11 @@ or to modify a specific kind of data.
 For example, you might wish to notify about a configuration profile switch
 or allow modification of spoken messages before they are passed to the synthesizer.
 See the L{Action}, L{Filter}, L{Decider} classes.
+Actions can be grouped in a container using the L{ActionContainer} class.
 """
 from logHandler import log
 from .util import HandlerRegistrar, callWithSupportedKwargs, BoundMethodWeakref
+from fnmatch import fnmatch
 
 
 class Action(HandlerRegistrar):
@@ -47,6 +49,38 @@ class Action(HandlerRegistrar):
 				callWithSupportedKwargs(handler, **kwargs)
 			except:
 				log.exception("Error running handler %r for %r" % (handler, self))
+
+class ActionContainer(object):
+	"""Bundles a collection of actions together in a container,
+	and allows interested parties to register to be notified when one or more actions occur.
+	"""
+
+	def __init__(self):
+		#: Registered actions.
+		#: This is an OrderedDict where the keys are names
+		#: and the values are instances of L{Action}.
+		self._actions = collections.OrderedDict()
+
+	def register(self, actionName, handler, createAction=True):
+		"""Allows the registration of handlers for a specified action name.
+		@param actionName: The name of the action for which a handler should be registered.
+		@type name: str
+		@param handler: The handler that should be registered with this action.
+			Conditions should match those required by L{HandlerRegistrar.register}.
+		@param createAction: Whether a new action should be automatically created
+			if there isn't an action for the specified action name.
+		@type createAction: bool
+		"""
+		if actionName not in self._actions:
+			if not createAction:
+				raise ValueError("An action with name %s does not exist" % actionName)
+			self._actions[actionName] = Action()
+		self._actions[actionName].register(handler)
+
+	def unregister(self, actionName, handler):
+		if actionName not in self._actions:
+			raise ValueError("An action with name %s does not exist" % actionName)
+		self._actions[actionName].unregister(handler)
 
 class Filter(HandlerRegistrar):
 	"""Allows interested parties to register to modify a specific kind of data.
