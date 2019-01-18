@@ -17,6 +17,9 @@ try:
 except ImportError:
 	# Python 2 import
 	from collections import Callable
+import weakref
+from extensionPoints.util import BoundMethodWeakref
+
 
 class AutoWidthColumnListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 	"""
@@ -44,15 +47,21 @@ class AutoWidthColumnListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 				It should accept the same parameters as L{OnGetItemText},
 			@type itemTextCallable: L{callable}
 		"""
-		if itemTextCallable is not None and not isinstance(itemTextCallable, Callable):
+		self._itemTextCallable = None
+		if not isinstance(itemTextCallable, Callable):
 			raise TypeError("itemTextCallable should be None or a callable")
-		self._itemTextCallable = itemTextCallable
+		if hasattr(itemTextCallable, "__self__"):
+			if not itemTextCallable.__self__:
+				raise TypeError("Unbound instance methods are not supported.")
+			self._itemTextCallable = BoundMethodWeakref(itemTextCallable)
+		else:
+			self._itemTextCallable = weakref(itemTextCallable)
 		wx.ListCtrl.__init__(self, parent, id=id, pos=pos, size=size, style=style)
 		listmix.ListCtrlAutoWidthMixin.__init__(self)
 		self.setResizeColumn(autoSizeColumnIndex)
 
 	def OnGetItemText(self, item, column):
-		if self._itemTextCallable is None:
+		if self._itemTextCallable is None or self._itemTextCallable() is None:
 			return super(AutoWidthColumnListCtrl, self).OnGetItemText(item, column)
 		return self._itemTextCallable(item, column)
 
