@@ -1333,6 +1333,8 @@ class GlobalCommands(ScriptableObject):
 				
 			ui.message(" ".join(textList))
 		else:
+			# Also report the RGB value in browseable messages.
+			formatConfig['reportColorRGB'] = True
 			text=info.getFormatFieldSpeech(formatField,formatConfig=formatConfig , separator="\n") if formatField else None
 			if text:
 				textList.append(text)
