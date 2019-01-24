@@ -41,7 +41,7 @@ import brailleInput
 import inputCore
 import virtualBuffers
 import characterProcessing
-from baseObject import ScriptableObject
+from baseObject import ScriptableObject, Getter
 import core
 import winVersion
 from base64 import b16encode
