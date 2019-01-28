@@ -531,15 +531,14 @@ class NVDAObject(with_metaclass(DynamicNVDAObjectType, documentBase.TextContaine
 		return None
 
 	def _get_children(self):
-		"""Retreaves a list of all the objects directly contained by this object (who's parent is this object).
-		@rtype: list of L{NVDAObject}
+		"""Returns a generator of all the objects directly contained by this object
+		(whose parent is this object).
+		@rtype: generator of L{NVDAObject}
 		"""
-		children=[]
 		child=self.firstChild
 		while child:
-			children.append(child)
+			yield child
 			child=child.next
-		return children
 
 	def getChild(self, index):
 		"""Retrieve a child by index.

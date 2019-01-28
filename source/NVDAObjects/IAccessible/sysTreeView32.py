@@ -153,12 +153,7 @@ class TreeViewItem(IAccessible):
 		return IAccessible(windowHandle=self.windowHandle,IAccessibleObject=self.IAccessibleObject,IAccessibleChildID=newID)
 
 	def _get_children(self):
-		children=[]
-		child=self.firstChild
-		while child:
-			children.append(child)
-			child=child.next
-		return children
+		return NVDAObject._get_children(self)
 
 	def _get_childCount(self):
 		hItem=self.treeview_hItem

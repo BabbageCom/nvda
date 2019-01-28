@@ -1018,17 +1018,17 @@ the NVDAObject for IAccessible
 
 	def _get_children(self):
 		if self.IAccessibleChildID!=0:
-			return []
+			return
 		try:
 			childCount= self.IAccessibleObject.accChildCount
 		except COMError:
 			childCount=0
 		if childCount<=0:
-			return []
+			return
 		children=[]
 		for IAccessibleObject,IAccessibleChildID in IAccessibleHandler.accessibleChildren(self.IAccessibleObject,0,childCount):
 			if IAccessibleObject==self.IAccessibleObject:
-				children.append(IAccessible(windowHandle=self.windowHandle,IAccessibleObject=self.IAccessibleObject,IAccessibleChildID=IAccessibleChildID,event_windowHandle=self.event_windowHandle,event_objectID=self.event_objectID,event_childID=IAccessibleChildID))
+				yield IAccessible(windowHandle=self.windowHandle,IAccessibleObject=self.IAccessibleObject,IAccessibleChildID=IAccessibleChildID,event_windowHandle=self.event_windowHandle,event_objectID=self.event_objectID,event_childID=IAccessibleChildID)
 				continue
 			try:
 				identity=IAccessibleHandler.getIAccIdentity(IAccessibleObject,0)
@@ -1038,14 +1038,14 @@ the NVDAObject for IAccessible
 			#If it does happen to be IAccessible though, we only want the client, not the window root IAccessible
 			if identity and identity.get('objectID',None)==0 and identity.get('childID',None)==0:
 				windowHandle=identity.get('windowHandle',None)
-				if windowHandle:
+				if windowHandle and winUser.isDescendantWindow(self.windowHandle,windowHandle):
 					kwargs=dict(windowHandle=windowHandle)
 					APIClass=Window.findBestAPIClass(kwargs,relation="parent") #Need a better relation type for this, but parent works ok -- gives the client
-					children.append(APIClass(**kwargs))
+					yield APIClass(**kwargs)
 					continue
-			children.append(IAccessible(IAccessibleObject=IAccessibleObject,IAccessibleChildID=IAccessibleChildID))
-		children=[x for x in children if x and winUser.isDescendantWindow(self.windowHandle,x.windowHandle)]
-		return children
+			child = IAccessible(IAccessibleObject=IAccessibleObject,IAccessibleChildID=IAccessibleChildID)
+			if child and winUser.isDescendantWindow(self.windowHandle,child.windowHandle):
+				yield child
 
 	def getChild(self, index):
 		if self.IAccessibleChildID != 0:
@@ -1673,12 +1673,10 @@ class JavaVMRoot(IAccessible):
 		return NVDAObjects.JAB.JAB(jabContext=jabContext)
 
 	def _get_children(self):
-		children=[]
 		jabContext=JABHandler.JABContext(hwnd=self.windowHandle)
 		obj=NVDAObjects.JAB.JAB(jabContext=jabContext)
 		if obj:
-			children.append(obj)
-		return children
+			yield obj
 
 class NUIDialogClient(Dialog):
 	role=controlTypes.ROLE_DIALOG

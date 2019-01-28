@@ -1526,7 +1526,6 @@ class ExcelDropdown(Window):
 		return self._highlightColors
 
 	def _get_children(self):
-		children=[]
 		index=0
 		states=set()
 		for item in DisplayModelTextInfo(self,textInfos.POSITION_ALL).getTextWithFields():
@@ -1537,13 +1536,11 @@ class ExcelDropdown(Window):
 				if (background,foreground)==self._highlightColors:
 					states.add(controlTypes.STATE_SELECTED)
 			if isinstance(item,basestring):
-				obj=ExcelDropdownItem(parent=self,name=item,states=states,index=index)
-				children.append(obj)
+				yield ExcelDropdownItem(parent=self,name=item,states=states,index=index)
 				index+=1
-		return children
 
 	def getChildAtIndex(self,index):
-		return self.children[index]
+		return next(child for i, child in enumerate(self.children) if i==index)
 
 	def _get_childCount(self):
 		return len(self.children)

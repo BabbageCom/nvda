@@ -430,7 +430,6 @@ class JAB(Window):
 		return self._JABAccContextInfo.childrenCount
 
 	def _get_children(self):
-		children=[]
 		for index in xrange(self._JABAccContextInfo.childrenCount):
 			jabContext=self.jabContext.getAccessibleChildFromContext(index)
 			if jabContext:
@@ -439,8 +438,7 @@ class JAB(Window):
 					obj.parent=self
 				if obj.indexInParent is None:
 					obj.indexInParent=index
-				children.append(obj)
-		return children
+				yield obj
 
 	def _get_indexInParent(self):
 		index = self._JABAccContextInfo.indexInParent

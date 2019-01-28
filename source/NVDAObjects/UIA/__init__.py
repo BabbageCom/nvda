@@ -1242,16 +1242,16 @@ class UIA(Window):
 			cachedChildren=self.UIAElement.buildUpdatedCache(childrenCacheRequest).getCachedChildren()
 		except COMError as e:
 			log.debugWarning("Could not fetch cached children from UIA element: %s"%e)
-			return super(UIA,self).children
-		children=[]
+			for child in super(UIA,self).children:
+				yield child
+			return
 		if not cachedChildren:
 			# GetCachedChildren returns null if there are no children.
-			return children
+			return
 		for index in xrange(cachedChildren.length):
 			e=cachedChildren.getElement(index)
 			windowHandle=self.windowHandle
-			children.append(self.correctAPIForRelation(UIA(windowHandle=windowHandle,UIAElement=e)))
-		return children
+			yield self.correctAPIForRelation(UIA(windowHandle=windowHandle,UIAElement=e))
 
 	def _get_rowNumber(self):
 		val=self._getUIACacheablePropertyValue(UIAHandler.UIA_GridItemRowPropertyId,True)

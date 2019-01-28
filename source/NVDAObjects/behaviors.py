@@ -544,7 +544,8 @@ class RowWithoutCellObjects(NVDAObject):
 		return self._makeCell(1)
 
 	def _get_children(self):
-		return [self._makeCell(column) for column in xrange(1, self.childCount + 1)]
+		for column in xrange(1, self.childCount + 1):
+			yield self._makeCell(column)
 
 	def getChild(self, index):
 		return self._makeCell(index + 1)
