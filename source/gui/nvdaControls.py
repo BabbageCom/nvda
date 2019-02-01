@@ -46,10 +46,10 @@ class SelectOnFocusSpinCtrl(wx.SpinCtrl):
 class ListCtrlAccPropServer(accPropServer.IAccPropServer_Impl):
 	"""AccPropServer for wx checkable lists which aren't fully accessible."""
 
-	#: An array with the GUIDs of the properties that an AccPropServer should override for list controls with checkboxes.
+	#: The GUIDs of the properties that an AccPropServer should override for list controls with checkboxes.
 	#: The role is supposed to be checkbox, rather than list item.
 	#: The state should be overridden to include the checkable state as well as the checked state if the item is checked.
-	properties = (comtypes.GUID * 2)(*[oleacc.PROPID_ACC_ROLE,oleacc.PROPID_ACC_STATE])
+	_properties = (oleacc.PROPID_ACC_ROLE,oleacc.PROPID_ACC_STATE)
 
 	def __init__(self, control):
 		super(ListCtrlAccPropServer, self).__init__(control, annotateChildren=True)

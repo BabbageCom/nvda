@@ -15,6 +15,7 @@ from six import with_metaclass
 import weakref
 import winUser
 import wx
+from comtypes import GUID
 
 class IAccPropServer_Impl(with_metaclass(ABCMeta, COMObject)):
 	"""Base class for implementing a COM interface for a hwnd based AccPropServer\
@@ -90,11 +91,18 @@ class IAccPropServer_Impl(with_metaclass(ABCMeta, COMObject)):
 			return VT_EMPTY, 0
 
 	@abstractproperty
-	def properties(self):
-		""" Returns an array of properties that should be handled by this instance.
-		@rtype: L{comtypes.GUID}*n
+	def _properties(self):
+		""" A tuple of properties that should be handled by this instance.
+		@rtype: (L{GUID,)
 		"""
-		raise NotImplementedError
+		return ()
+
+	@property
+	def properties(self):
+		""" Returns a GUID array for internal use
+		(e.g. when calling SetHwndPropServer)
+		"""
+		return (GUID * len(self._properties))(*self._properties)
 
 	def _onDestroyControl(self, evt):
 		evt.Skip() # Allow other handlers to process this event.
