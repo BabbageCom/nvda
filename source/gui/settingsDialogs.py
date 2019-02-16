@@ -2409,7 +2409,7 @@ class DictionaryDialog(SettingsDialog):
 	def __init__(self,parent,title,speechDict):
 		self.title = title
 		self.speechDict = speechDict
-		self.tempSpeechDict=speechDictHandler.SpeechDict()
+		self.filteredSpeechDict = self.tempSpeechDict = speechDictHandler.SpeechDict()
 		self.tempSpeechDict.extend(self.speechDict)
 		globalVars.speechDictionaryProcessing=False
 		super().__init__(parent, resizeable=True)
@@ -2421,50 +2421,124 @@ class DictionaryDialog(SettingsDialog):
 
 	def makeSettings(self, settingsSizer):
 		sHelper = guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
+
+		# Translators: The label of a text field to search for entries in the speech dictionary dialog.
+		filterText = pgettext("speechDictionaries", "&Filter by:")
+		labeledFilterBy = guiHelper.LabeledTextCtrl(
+			parent=self,
+			labelText=filterText,
+			expandTextCtrlWidth=True,
+			size=self.scaleSize((310, -1)),
+		)
+		sHelper.addItem(labeledFilterBy.sizer, flag=wx.EXPAND)
+		self.filterEdit = labeledFilterBy.control
+		self.filterEdit.Bind(wx.EVT_TEXT, self.onFilterEditTextChange)
+
 		# Translators: The label for the combo box of dictionary entries in speech dictionary dialog.
 		entriesLabelText=_("&Dictionary entries")
-		self.dictList = sHelper.addLabeledControl(
+		self.dictList=sHelper.addLabeledControl(
 			entriesLabelText,
-			wx.ListCtrl, style=wx.LC_REPORT | wx.LC_SINGLE_SEL
+			nvdaControls.AutoWidthColumnListCtrl,
+			autoSizeColumnIndex=2,  # The replacement column is likely to need the most space
+			itemTextCallable=self.getItemTextForList,
+			style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.LC_VIRTUAL
 		)
 		# Translators: The label for a column in dictionary entries list used to identify comments for the entry.
-		self.dictList.InsertColumn(0,_("Comment"),width=150)
+		self.dictList.InsertColumn(0, _("Comment"), width=self.scaleSize(150))
 		# Translators: The label for a column in dictionary entries list used to identify pattern (original word or a pattern).
-		self.dictList.InsertColumn(1,_("Pattern"),width=150)
+		self.dictList.InsertColumn(1, _("Pattern"), width=self.scaleSize(150))
 		# Translators: The label for a column in dictionary entries list and in a list of symbols from symbol pronunciation dialog used to identify replacement for a pattern or a symbol
-		self.dictList.InsertColumn(2,_("Replacement"),width=150)
+		self.dictList.InsertColumn(2, _("Replacement"), width=self.scaleSize(150))
 		# Translators: The label for a column in dictionary entries list used to identify whether the entry is case sensitive or not.
-		self.dictList.InsertColumn(3,_("case"),width=50)
+		self.dictList.InsertColumn(3, _("case"), width=self.scaleSize(50))
 		# Translators: The label for a column in dictionary entries list used to identify whether the entry is a regular expression, matches whole words, or matches anywhere.
-		self.dictList.InsertColumn(4,_("Type"),width=50)
+		self.dictList.InsertColumn(4, _("Type"), width=self.scaleSize(50))
 		self.offOn = (_("off"),_("on"))
-		for entry in self.tempSpeechDict:
-			self.dictList.Append((entry.comment,entry.pattern,entry.replacement,self.offOn[int(entry.caseSensitive)],DictionaryDialog.TYPE_LABELS[entry.type]))
-		self.editingIndex=-1
 
 		bHelper = guiHelper.ButtonHelper(orientation=wx.HORIZONTAL)
-		bHelper.addButton(
+		self.addButton = bHelper.addButton(
 			parent=self,
 			# Translators: The label for a button in speech dictionaries dialog to add new entries.
 			label=_("&Add")
-		).Bind(wx.EVT_BUTTON, self.OnAddClick)
+		)
+		self.addButton.Bind(wx.EVT_BUTTON, self.OnAddClick)
 
-		bHelper.addButton(
+		self.editButton = bHelper.addButton(
 			parent=self,
 			# Translators: The label for a button in speech dictionaries dialog to edit existing entries.
 			label=_("&Edit")
-		).Bind(wx.EVT_BUTTON, self.OnEditClick)
+		)
+		self.editButton.Bind(wx.EVT_BUTTON, self.OnEditClick)
 
-		bHelper.addButton(
+		self.removeButton = bHelper.addButton(
 			parent=self,
 			# Translators: The label for a button in speech dictionaries dialog to remove existing entries.
 			label=_("&Remove")
-		).Bind(wx.EVT_BUTTON, self.OnRemoveClick)
+		)
+		self.removeButton.Bind(wx.EVT_BUTTON, self.OnRemoveClick)
 
 		sHelper.addItem(bHelper)
+		# Populate the unfiltered list with dictionary entries.
+		self.filter()
 
 	def postInit(self):
+		size = self.GetBestSize()
+		self.SetSizeHints(
+			minW=size.GetWidth(),
+			minH=size.GetHeight(),
+			maxH=size.GetHeight(),
+		)
 		self.dictList.SetFocus()
+
+	def filter(self, filterText=''):
+		index = self.dictList.FirstSelected
+		oldFilteredSpeechDict = self.filteredSpeechDict
+		if not filterText:
+			self.filteredSpeechDict = self.tempSpeechDict
+		else:
+			# Do case-insensitive matching by lowering both filterText and each entry's pattern and replacement.
+			filterText=filterText.lower()
+			self.filteredSpeechDict = speechDictHandler.SpeechDict(
+				entry for entry in self.tempSpeechDict
+				if filterText in entry.pattern.lower()
+				or filterText in entry.replacement.lower()
+			]
+		self.dictList.ItemCount = len(self.filteredSpeechDict)
+		# When filtering and there was a selection before, try to preserve the selection in the list.
+		if index != -1:
+			try:
+				index = self.filteredSpeechDict.index(oldFilteredSpeechDict[index])
+			except ValueError:
+				index = -1
+		if index == -1:
+			if self.dictList.ItemCount:
+				index = 0
+			else:
+				self.editingItem = None
+				# Disable the edit and remove buttons.
+				self.editButton.Disable()
+				self.removeButton.Disable()
+				return
+		# Change the selection
+		self.dictList.Select(index)
+		self.dictList.Focus(index)
+		# We don't get a new focus event with the new index.
+		self.dictList.sendListItemFocusedEvent(index)
+
+	def getItemTextForList(self, item, column):
+		entry = self.filteredSpeechDict[item]
+		if column == 0:
+			return entry.comment
+		elif column == 1:
+			return entry.pattern
+		elif column == 2:
+			return entry.replacement
+		elif column == 3:
+			return entry.caseSensitive
+		elif column == 4:
+			return entry.type
+		else:
+			raise ValueError("Unknown column: %d" % column)
 
 	def onCancel(self,evt):
 		globalVars.speechDictionaryProcessing=True
