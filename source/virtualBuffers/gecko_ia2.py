@@ -91,7 +91,11 @@ class Gecko_ia2_TextInfo(VirtualBufferTextInfo):
 			# This is a named link destination, not a link which can be activated. The user doesn't care about these.
 			role=controlTypes.ROLE_TEXTFRAME
 		level=attrs.get('IAccessible2::attribute_level',"")
+
 		xmlRoles=attrs.get("IAccessible2::attribute_xml-roles", "").split(" ")
+		if "figure" in xmlRoles:
+			# This is a figure.
+			role=controlTypes.ROLE_FIGURE
 		# Get the first landmark role, if any.
 		landmark=next((xr for xr in xmlRoles if xr in aria.landmarkRoles),None)
 
