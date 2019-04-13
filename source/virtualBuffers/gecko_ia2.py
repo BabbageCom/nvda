@@ -295,7 +295,7 @@ class Gecko_ia2(VirtualBuffer):
 				]
 		elif nodeType=="embeddedObject":
 			attrs=[
-				{"IAccessible2::attribute_tag":self._searchableTagValues(["embed","object","applet","audio","video"])},
+				{"IAccessible2::attribute_tag":self._searchableTagValues(["embed","object","applet","audio","video","figure"])},
 				{"IAccessible::role":[oleacc.ROLE_SYSTEM_APPLICATION,oleacc.ROLE_SYSTEM_DIALOG]},
 			]
 		else:
