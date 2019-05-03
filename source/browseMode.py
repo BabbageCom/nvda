@@ -38,6 +38,16 @@ from abc import ABCMeta, abstractmethod
 
 REASON_QUICKNAV = "quickNav"
 
+QUICKNAV_OFF = 0
+QUICKNAV_CONTENT = 1
+QUICKNAV_LAYOUT = 2
+
+quickNavLayers = {
+	QUICKNAV_OFF: _("off"),
+	QUICKNAV_CONTENT: _("content"),
+	QUICKNAV_LAYOUT: _("lay-out"),
+}
+
 def reportPassThrough(treeInterceptor,onlyIfChanged=True):
 	"""Reports the pass through mode if it has changed.
 	@param treeInterceptor: The current Browse Mode treeInterceptor.
@@ -350,28 +360,22 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 	def script_trapNonCommandGesture(self,gesture):
 		winsound.PlaySound("default",1)
 
-	singleLetterNavEnabled=True #: Whether single letter navigation scripts should be active (true) or if these letters should fall to the application.
+	quickNavLayer=QUICKNAV_CONTENT
 
 	def getAlternativeScript(self,gesture,script):
 		if self.passThrough or not gesture.isCharacter:
 			return script
-		if not self.singleLetterNavEnabled:
+		if self.quickNavLayer == QUICKNAV_OFF:
 			return None
 		if not script and self.shouldTrapNonCommandGestures: 
 			script=self.script_trapNonCommandGesture
 		return script
 
-	def script_toggleSingleLetterNav(self,gesture):
-		if self.singleLetterNavEnabled:
-			self.singleLetterNavEnabled=False
-			# Translators: Reported when single letter navigation in browse mode is turned off.
-			ui.message(_("Single letter navigation off"))
-		else:
-			self.singleLetterNavEnabled=True
-			# Translators: Reported when single letter navigation in browse mode is turned on.
-			ui.message(_("Single letter navigation on"))
-	# Translators: the description for the toggleSingleLetterNavigation command in browse mode.
-	script_toggleSingleLetterNav.__doc__=_("Toggles single letter navigation on and off. When on, single letter keys in browse mode jump to various kinds of elements on the page. When off, these keys are passed to the application")
+	def script_cycleQuickNavLayers(self,gesture):
+		self.quickNavLayer = (self.quickNavLayer + 1) % len(quickNavLayers)
+		ui.message(_("Single letter navigation %s") % quickNavLayers[self.quickNavLayer])
+	# Translators: the description for the cycleQuickNavLayers command in browse mode.
+	script_cycleQuickNavLayers.__doc__=_("Toggles single letter navigation on and off. When on, single letter keys in browse mode jump to various kinds of elements on the page. When off, these keys are passed to the application")
 
 	def _get_ElementsListDialog(self):
 		return ElementsListDialog
@@ -412,17 +416,30 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 			item.report(readUnit=readUnit)
 
 	@classmethod
-	def addQuickNav(cls, itemType, key, nextDoc, nextError, prevDoc, prevError, readUnit=None):
+	def addQuickNav(
+		cls,
+		itemType, key,
+		nextDoc, nextError,
+		prevDoc, prevError,
+		readUnit=None,
+		layer=QUICKNAV_CONTENT
+	):
 		"""Adds a script for the given quick nav item.
 		@param itemType: The type of item, I.E. "heading" "Link" ...
-		@param key: The quick navigation key to bind to the script. Shift is automatically added for the previous item gesture. E.G. h for heading
+		@param key: The quick navigation key to bind to the script.
+			Shift is automatically added for the previous item gesture.
+			E.G. h for heading.
 		@param nextDoc: The command description to bind to the script that yields the next quick nav item.
 		@param nextError: The error message if there are no more quick nav items of type itemType in this direction.
 		@param prevDoc: The command description to bind to the script that yields the previous quick nav item.
 		@param prevError: The error message if there are no more quick nav items of type itemType in this direction.
-		@param readUnit: The unit (one of the textInfos.UNIT_* constants) to announce when moving to this type of item. 
-			For example, only the line is read when moving to tables to avoid reading a potentially massive table. 
+		@param readUnit: The unit (one of the textInfos.UNIT_* constants)
+			to announce when moving to this type of item.
+			For example, only the line is read when moving to tables
+			to avoid reading a potentially massive table.
 			If None, the entire item will be announced.
+		@param layer: The quick navigation layer this script has to be used in.
+			One of the C{QUICKNAV_*} constants.
 		"""
 		scriptSuffix = itemType[0].upper() + itemType[1:]
 		scriptName = "next%s" % scriptSuffix
@@ -431,6 +448,7 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		script.__doc__ = nextDoc
 		script.__name__ = funcName
 		script.resumeSayAllMode=sayAllHandler.CURSOR_CARET
+		script._quickNavLayer=layer
 		setattr(cls, funcName, script)
 		cls.__gestures["kb:%s" % key] = scriptName
 		scriptName = "previous%s" % scriptSuffix
@@ -439,6 +457,7 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		script.__doc__ = prevDoc
 		script.__name__ = funcName
 		script.resumeSayAllMode=sayAllHandler.CURSOR_CARET
+		script._quickNavLayer=layer
 		setattr(cls, funcName, script)
 		cls.__gestures["kb:shift+%s" % key] = scriptName
 
@@ -529,7 +548,7 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		"kb:enter": "activatePosition",
 		"kb:numpadEnter": "activatePosition",
 		"kb:space": "activatePosition",
-		"kb:NVDA+shift+space":"toggleSingleLetterNav",
+		"kb:NVDA+shift+space":"cycleQuickNavLayers",
 		"kb:escape": "disablePassThrough",
 		"kb:control+enter": "passThrough",
 		"kb:control+numpadEnter": "passThrough",
