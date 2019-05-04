@@ -115,7 +115,21 @@ class ErrorUIATextInfoQuickNavItem(TextAttribUIATextInfoQuickNavItem):
 			# {text} will be replaced with the text of the spelling error.
 			return _(u"grammar: {text}").format(text=text)
 		else:
-			return text
+			# This should never happen
+			raise RuntimeError
+
+class BoldUIATextInfoQuickNavItem(TextAttribUIATextInfoQuickNavItem):
+	attribID = UIAHandler.UIA_FontWeightAttributeId
+	attribValueMatchFunc = lambda val: val >= 700
+
+class BooleanTextAttribUIATextInfoQuickNavItem(TextAttribUIATextInfoQuickNavItem):
+	attribValueMatchFunc = lambda val: val
+
+class ItalicUIATextInfoQuickNavItem(BooleanTextAttribUIATextInfoQuickNavItem):
+	attribID = UIAHandler.UIA_IsItalicAttributeId
+
+class UnderlineUIATextInfoQuickNavItem(BooleanTextAttribUIATextInfoQuickNavItem):
+	attribID = UIAHandler.UIA_UnderlineStyleAttributeId
 
 def UIATextAttributeQuicknavIterator(ItemClass,itemType,document,position,direction="next"):
 	reverse=(direction=="previous")
