@@ -78,19 +78,29 @@ class UIATextRangeQuickNavItem(browseMode.TextInfoQuickNavItem):
 		return self._getLabelForProperties(lambda prop: getattr(self.obj, prop, None))
 
 class TextAttribUIATextInfoQuickNavItem(browseMode.TextInfoQuickNavItem):
-	attribID=None #: a UIA text attribute to search for
-	wantedAttribValues=set() #: A set of attribute values acceptable to match the search.
+	_abstract_attribID = True
+	@classmethod
+	def _get_attribID(self):
+		"""Returns the UIA text attribute to search for."""
+		return None
 
 	def __init__(self,attribValues,itemType,document,textInfo):
 		self.attribValues=attribValues
 		super(TextAttribUIATextInfoQuickNavItem,self).__init__(itemType,document,textInfo)
 
-class ErrorUIATextInfoQuickNavItem(TextAttribUIATextInfoQuickNavItem):
-	attribID=UIAHandler.UIA_AnnotationTypesAttributeId
-	wantedAttribValues={UIAHandler.AnnotationType_SpellingError,UIAHandler.AnnotationType_GrammarError}
+	_abstract_attribValueMatchFunc = True
+	@classmethod
+	def _get_attribValueMatchFunc(self):
+		"""A function taking an attribute value as argument, returning C{True} when it matches."""
+		return lambda val: False
 
-	@property
-	def label(self):
+class ErrorUIATextInfoQuickNavItem(TextAttribUIATextInfoQuickNavItem):
+	attribID = UIAHandler.UIA_AnnotationTypesAttributeId
+	attribValueMatchFunc = lambda val: val in {
+		UIAHandler.AnnotationType_SpellingError,UIAHandler.AnnotationType_GrammarError
+	}
+
+	def _get_label(self):
 		text=self.textInfo.text
 		if (UIAHandler.AnnotationType_SpellingError in self.attribValues) and (UIAHandler.AnnotationType_GrammarError in self.attribValues):
 			# Translators: The label shown for a spelling and grammar error in the NVDA Elements List dialog in Microsoft Word.
@@ -128,8 +138,8 @@ def UIATextAttributeQuicknavIterator(ItemClass,itemType,document,position,direct
 				continue
 		curAttribValue=subrange.getAttributeValue(ItemClass.attribID)
 		curAttribValues=curAttribValue if isinstance(curAttribValue,tuple) else (curAttribValue,)
-		for wantedAttribValue in ItemClass.wantedAttribValues:
-			if wantedAttribValue in curAttribValues:
+		for curAttribValue in curAttribValues:
+			if ItemClass.attribValueMatchFunc(curAttribValue):
 				tempInfo=document.makeTextInfo(subrange)
 				yield ItemClass(curAttribValues,itemType,document,tempInfo)
 				break
