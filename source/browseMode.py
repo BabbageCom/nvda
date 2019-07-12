@@ -36,17 +36,20 @@ import gui.guiHelper
 from NVDAObjects import NVDAObject
 from abc import ABCMeta, abstractmethod
 from baseObject import AutoPropertyObject
+from enum import IntEnum
 
 REASON_QUICKNAV = "quickNav"
 
-QUICKNAV_OFF = 0
-QUICKNAV_CONTENT = 1
-QUICKNAV_LAYOUT = 2
+class QuickNav(IntEnum):
+	"""Enumeration for quick navigation layers."""
+	OFF = 0
+	CONTENT = 1
+	LAYOUT = 2
 
-quickNavLayers = {
-	QUICKNAV_OFF: _("off"),
-	QUICKNAV_CONTENT: _("content"),
-	QUICKNAV_LAYOUT: _("lay-out"),
+quickNavLayerLabels = {
+	QuickNav.OFF: _("off"),
+	QuickNav.CONTENT: _("content"),
+	QuickNav.LAYOUT: _("lay-out"),
 }
 
 def reportPassThrough(treeInterceptor,onlyIfChanged=True):
@@ -361,20 +364,20 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 	def script_trapNonCommandGesture(self,gesture):
 		winsound.PlaySound("default",1)
 
-	quickNavLayer=QUICKNAV_CONTENT
+	quickNavLayer = QuickNav.CONTENT
 
 	def getAlternativeScript(self,gesture,script):
 		if self.passThrough or not gesture.isCharacter:
 			return script
-		if self.quickNavLayer == QUICKNAV_OFF:
+		if self.quickNavLayer == QuickNav.OFF:
 			return None
 		if not script and self.shouldTrapNonCommandGestures: 
 			script=self.script_trapNonCommandGesture
 		return script
 
 	def script_cycleQuickNavLayers(self,gesture):
-		self.quickNavLayer = (self.quickNavLayer + 1) % len(quickNavLayers)
-		ui.message(_("Single letter navigation %s") % quickNavLayers[self.quickNavLayer])
+		self.quickNavLayer = (self.quickNavLayer + 1) % len(QuickNav)
+		ui.message(_("Single letter navigation %s") % quickNavLayerLabels[self.quickNavLayer])
 	# Translators: the description for the cycleQuickNavLayers command in browse mode.
 	script_cycleQuickNavLayers.__doc__=_("Toggles single letter navigation on and off. When on, single letter keys in browse mode jump to various kinds of elements on the page. When off, these keys are passed to the application")
 
@@ -423,7 +426,7 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 		nextDoc, nextError,
 		prevDoc, prevError,
 		readUnit=None,
-		layer=QUICKNAV_CONTENT
+		layer: QuickNav = QuickNav.CONTENT
 	):
 		"""Adds a script for the given quick nav item.
 		@param itemType: The type of item, I.E. "heading" "Link" ...
@@ -440,7 +443,6 @@ class BrowseModeTreeInterceptor(treeInterceptorHandler.TreeInterceptor):
 			to avoid reading a potentially massive table.
 			If None, the entire item will be announced.
 		@param layer: The quick navigation layer this script has to be used in.
-			One of the C{QUICKNAV_*} constants.
 		"""
 		scriptSuffix = itemType[0].upper() + itemType[1:]
 		scriptName = "next%s" % scriptSuffix
